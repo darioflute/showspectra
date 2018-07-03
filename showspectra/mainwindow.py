@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QTabWidget, QTa
                              QVBoxLayout, QSizePolicy, QStatusBar, QSplitter,
                              QToolBar, QAction, QFileDialog,  QTableView, QComboBox, QAbstractItemView,
                              QMessageBox, QInputDialog, QDialog, QLabel)
-from PyQt5.QtGui import QIcon, QStandardItem, QStandardItemModel, QPixmap, QMovie
+from PyQt5.QtGui import QIcon, QImage, QStandardItem, QStandardItemModel, QPixmap, QMovie
 from PyQt5.QtCore import Qt, QSize, QTimer, QThread, QObject, pyqtSignal
 
 from graphics import SpectrumCanvas, NavigationToolbar
@@ -22,11 +22,13 @@ class GUI (QMainWindow):
         self.width = 640
         self.height = 480
 
+
         # Ordinate closing
         self.setAttribute(Qt.WA_DeleteOnClose)
 
         # Path of the package
         self.path0, file0 = os.path.split(__file__)
+        self.setWindowIcon(QIcon(QPixmap(self.path0+'/icons/showspectra.png')))
 
         # Style
         # Define style
@@ -81,7 +83,7 @@ class GUI (QMainWindow):
         layout = QVBoxLayout(self.spectralPanel)
 
         # Plotting panel
-        self.sp = SpectrumCanvas(self.spectralPanel,width=11, height=10.5,dpi=100)
+        self.sp = SpectrumCanvas(self.spectralPanel,width=8, height=5.,dpi=100)
         self.sp.toolbar = NavigationToolbar(self.sp, self)
         
         # Toolbar
@@ -140,9 +142,11 @@ if __name__ == '__main__':
     # Adjust geometry to size of the screen
     screen_resolution = app.desktop().screenGeometry()
     width = screen_resolution.width()
-    gui.setGeometry(width*0.025, 0, width*0.95, width*0.5)
+    gui.setGeometry(width*0.025, 0, width*0.95, width*0.45)
     # Add an icon for the application
-    app.setWindowIcon(QIcon(gui.path0+'/icons/showspectra.png'))
+    #icon = QImage(gui.path0+'/icons/showspectra.png')
+    #print(icon.isNull())
+    #app.setWindowIcon(QIcon(QPixmap(gui.path0+'/icons/showspectra.png')))
     app.setApplicationName('SHOWSPECTRA')
     app.setApplicationVersion('0.01-beta')
     sys.exit(app.exec_())
