@@ -3,6 +3,14 @@
 import sys,os
 import numpy as np
 
+from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QTabWidget, QTabBar,QHBoxLayout,
+                             QVBoxLayout, QSizePolicy, QStatusBar, QSplitter,
+                             QToolBar, QAction, QFileDialog,  QTableView, QComboBox, QAbstractItemView,
+                             QMessageBox, QInputDialog, QDialog, QLabel)
+from PyQt5.QtGui import QIcon, QStandardItem, QStandardItemModel, QPixmap, QMovie
+from PyQt5.QtCore import Qt, QSize, QTimer, QThread, QObject, pyqtSignal
+
+from graphics import SpectrumCanvas, NavigationToolbar
 
 class GUI (QMainWindow):
 
@@ -21,6 +29,10 @@ class GUI (QMainWindow):
         self.path0, file0 = os.path.split(__file__)
 
         # Style
+        # Define style
+        with open(self.path0+'/stylesheet.css',"r") as fh:
+            self.setStyleSheet(fh.read())
+
 
         self.initUI()
 
@@ -38,14 +50,99 @@ class GUI (QMainWindow):
         mainLayout = QHBoxLayout()
         
         # main panel
-        self.createImagePanel()
+        self.createSpectralPanel()
 
         # Add panel to main layout
-        mainLayout.addWidget(self.imagePanel)
+        mainLayout.addWidget(self.spectralPanel)
         wid.setLayout(mainLayout)
         self.show()
 
         # Menu
         self.createMenu()
 
+    def createMenu(self):
+        """ Menu """
+
+        # File import/save
+        bar = self.menuBar()
+        file = bar.addMenu("File")
+        file.addAction(QAction("Quit",self,shortcut='Ctrl+q',triggered=self.fileQuit))
+
+        # Help 
+        help = bar.addMenu("Help")
+
+        bar.setNativeMenuBar(False)
+
+
+    def createSpectralPanel(self):
+        """ Panel to plot the spectrum """
+
+        self.spectralPanel = QWidget()
+        layout = QVBoxLayout(self.spectralPanel)
+
+        # Plotting panel
+        self.sp = SpectrumCanvas(self.spectralPanel,width=11, height=10.5,dpi=100)
+        self.sp.toolbar = NavigationToolbar(self.sp, self)
         
+        # Toolbar
+        self.createToolbar()
+
+        # Status bar
+        self.sb = QStatusBar()
+        self.sb.showMessage("Welcome to Show Spectra !", 10000)
+
+        # Footer for the spectrum
+        footer = QWidget()
+        footer.layout = QHBoxLayout(footer)
+        footer.layout.addWidget(self.sp.toolbar)
+        footer.layout.addWidget(self.tb)
+        footer.layout.addWidget(self.sb)
+        
+        # Add widgets to the panel
+        layout.addWidget(self.sp)
+        layout.addWidget(footer)
+        
+    def createToolbar(self):
+        """ Toolbar with main commands """
+
+        # Toolbar definition
+        self.tb = QToolBar()
+        self.tb.setMovable(True)
+        self.tb.setObjectName('toolbar')
+
+        # Actions
+        self.quitAction = self.createAction(self.path0+'/icons/exit.png','Quit program','Ctrl+q',self.fileQuit)
+        #self.helpAction = self.createAction(self.path0+'/icons/help.png','Help','Ctrl+q',self.onHelp)
+
+        # Add actions
+        self.tb.addAction(self.quitAction)
+
+
+    def createAction(self,icon,text,shortcut,action):
+        act = QAction(QIcon(icon),text, self)
+        act.setShortcut(shortcut)
+        act.triggered.connect(action)
+        return act
+
+    # Actions
+    
+    def fileQuit(self):
+        """ Quitting the program """
+        self.close()
+
+
+
+if __name__ == '__main__':
+#def main():
+    app = QApplication(sys.argv)
+    gui = GUI()
+        
+    # Adjust geometry to size of the screen
+    screen_resolution = app.desktop().screenGeometry()
+    width = screen_resolution.width()
+    gui.setGeometry(width*0.025, 0, width*0.95, width*0.5)
+    # Add an icon for the application
+    app.setWindowIcon(QIcon(gui.path0+'/icons/showspectra.png'))
+    app.setApplicationName('SHOWSPECTRA')
+    app.setApplicationVersion('0.01-beta')
+    sys.exit(app.exec_())
