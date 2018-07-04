@@ -11,6 +11,9 @@ from PyQt5.QtGui import QIcon, QImage, QStandardItem, QStandardItemModel, QPixma
 from PyQt5.QtCore import Qt, QSize, QTimer, QThread, QObject, pyqtSignal
 
 from graphics import SpectrumCanvas, NavigationToolbar
+from dialogs  import selectTelescope, selectFiles
+from inout    import saveAnalysis, recoverAnalysis
+
 
 class GUI (QMainWindow):
 
@@ -22,6 +25,8 @@ class GUI (QMainWindow):
         self.width = 640
         self.height = 480
 
+        # initialize galaxies
+        self.galaxies = None
 
         # Ordinate closing
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -35,8 +40,9 @@ class GUI (QMainWindow):
         with open(self.path0+'/stylesheet.css',"r") as fh:
             self.setStyleSheet(fh.read())
 
-
         self.initUI()
+
+        
 
     def initUI(self):
         """ User interface """
@@ -62,6 +68,24 @@ class GUI (QMainWindow):
         # Menu
         self.createMenu()
 
+    def selTelescope(self):
+        """ Select telescope """
+        TD = selectTelescope()
+        if TD.exec_() == QDialog.Accepted:
+            self.telescope = TD.save()
+            print('Selected telescope: ',self.telescope)
+            #self.importTelescope()
+            
+    def importTelescope(self):
+        """ Import library of the telescope """
+
+        if self.telescope == 'WIYN':
+            from wiyn import getSky, getGalaxies, getErrors
+        elif self.telescope == 'VIMOS':
+            from vimos import getSky, getGalaxies, getErrors
+        else:
+            print("Telescope "+self.telescope+" is not yet supported.")
+        
     def createMenu(self):
         """ Menu """
 
@@ -83,7 +107,7 @@ class GUI (QMainWindow):
         layout = QVBoxLayout(self.spectralPanel)
 
         # Plotting panel
-        self.sp = SpectrumCanvas(self.spectralPanel,width=8, height=5.,dpi=100)
+        self.sp = SpectrumCanvas(self.spectralPanel,width=4, height=2.5,dpi=100)
         self.sp.toolbar = NavigationToolbar(self.sp, self)
         
         # Toolbar
@@ -113,10 +137,14 @@ class GUI (QMainWindow):
         self.tb.setObjectName('toolbar')
 
         # Actions
+        self.openAction = self.createAction(self.path0+'/icons/open.png','Open files','Ctrl+o',self.fileOpen)
+        self.teleAction = self.createAction(self.path0+'/icons/telescope.png','Select telescope','Ctrl+T',self.selTelescope)
         self.quitAction = self.createAction(self.path0+'/icons/exit.png','Quit program','Ctrl+q',self.fileQuit)
         #self.helpAction = self.createAction(self.path0+'/icons/help.png','Help','Ctrl+q',self.onHelp)
 
         # Add actions
+        self.tb.addAction(self.teleAction)
+        self.tb.addAction(self.openAction)
         self.tb.addAction(self.quitAction)
 
 
@@ -132,7 +160,42 @@ class GUI (QMainWindow):
         """ Quitting the program """
         self.close()
 
+    def fileOpen(self):
+        """ Opening spectral files """
 
+        # Import telescope library
+        if self.telescope == 'WIYN':
+            from wiyn import getSky, getGalaxies, getErrors
+        elif self.telescope == 'VIMOS':
+            from vimos import getSky, getGalaxies, getErrors
+        else:
+            print("Telescope "+self.telescope+" is not yet supported.")
+
+        FD = selectFiles()
+        if FD.exec_() == QDialog.Accepted:
+            flux,err,sky = FD.save()
+            print (FD.save())
+
+            # Opening files
+            print('Opening ',flux)
+            self.galaxies = getGalaxies(flux)
+            self.dirname, file = os.path.split(flux)
+            print('Opening ',err)
+            getErrors(self, err)
+            print('Opening ',sky)
+            self.sky = getSky(sky)
+            # Recover previous analysis
+            if (os.path.exists(self.dirname+'/showspectra.fits')):
+                print("Recovering previous analysis ...")
+                recoverAnalysis(self)
+            else:
+                self.ngal = 0
+                self.ngalaxies = len(self.galaxies)
+
+            self.showSky = True
+            self.showErr = True
+            self.sp.computeInitialFigure(self)
+        
 
 if __name__ == '__main__':
 #def main():
@@ -144,9 +207,14 @@ if __name__ == '__main__':
     width = screen_resolution.width()
     gui.setGeometry(width*0.025, 0, width*0.95, width*0.45)
     # Add an icon for the application
-    #icon = QImage(gui.path0+'/icons/showspectra.png')
-    #print(icon.isNull())
-    #app.setWindowIcon(QIcon(QPixmap(gui.path0+'/icons/showspectra.png')))
+    app.setWindowIcon(QIcon(QPixmap(gui.path0+'/icons/showspectra.png')))
     app.setApplicationName('SHOWSPECTRA')
     app.setApplicationVersion('0.01-beta')
+
+    # Select telescope
+    TD = selectTelescope()
+    if TD.exec_() == QDialog.Accepted:
+        gui.telescope = TD.save()
+        print('Selected telescope: ',gui.telescope)
+
     sys.exit(app.exec_())

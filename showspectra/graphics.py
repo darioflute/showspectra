@@ -43,7 +43,7 @@ class MplCanvas(FigureCanvas):
 
         FigureCanvas.setSizePolicy(self,QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding)
         FigureCanvas.updateGeometry(self)
-        self.compute_initial_figure()
+        self.computeInitialFigure()
 
     def sizeHint(self):
         w, h = self.get_width_height()
@@ -52,7 +52,7 @@ class MplCanvas(FigureCanvas):
     def minimumSizeHint(self):
         return QSize(5,5)
     
-    def compute_initial_figure(self):
+    def computeInitialFigure(self):
         pass
 
 
@@ -66,13 +66,6 @@ class SpectrumCanvas(MplCanvas):
         from lines import define_lines
         self.Lines = define_lines()
 
-        # Define figure
-        self.fig.set_edgecolor('none')
-        self.axes = self.fig.add_axes([0.12,0.15,.8,.78])
-        self.axes.format_coord = lambda x,y: "{:8.4f} A  {:10.4f} W/m2/Hz".format(x,y)
-
-        self.axes.spines['top'].set_visible(False)
-        self.axes.spines['right'].set_visible(False)
 
         # Display defaults
         self.displayFlux     = True
@@ -83,6 +76,49 @@ class SpectrumCanvas(MplCanvas):
         self.displayTemplate = True
         self.xlimits = None
         self.ylimits = None
+
+    def computeInitialFigure(self, parent=None):
+
+        # Refresh axes
+        #self.axes.clear()
+        
+        if parent is None:
+            pass
+        else:
+            try:
+                self.fig.delaxes(self.axes)
+                self.axes = None
+            except:
+                pass
+            # Define figure
+            self.fig.set_edgecolor('none')
+            self.axes = self.fig.add_axes([0.12,0.15,.8,.78])
+            self.axes.format_coord = lambda x,y: "{:8.4f} A  {:10.4f} W/m2/Hz".format(x,y)
+            self.axes.spines['top'].set_visible(False)
+            self.axes.spines['right'].set_visible(False)
+            
+            # Plot spectrum
+            gal = parent.galaxies[parent.ngal]
+            wave = gal.wc/(1.+gal.z)
+            flux = gal.fc
+            #if self.filter:
+            #    flux = savgol_filter(flux, 7, 3)
+            self.galspec, = self.axes.plot(wave,flux)
+            self.axes.set_xlim([gal.xlim1,gal.xlim2])
+            self.axes.set_ylim([gal.ylim1,gal.ylim2])
+            #drawLines(self,wave,flux)
+            # Sky spectrum
+            f = parent.sky.f
+            fgal = parent.galaxies[parent.ngal].f
+            f=(f-np.median(f))/max(f)*gal.ylim2+np.median(fgal)-gal.ylim1/10.
+            self.skyspec, = self.axes.plot(parent.sky.w/(1.+gal.z),f,color='r')
+            self.skyspec.set_visible(parent.showSky)
+            # Spectrum error
+            self.errspec, = self.axes.plot(wave,gal.ec,color='g')
+            self.errspec.set_visible(parent.showErr)
+            
+            self.draw_idle()
+        
         
 
         
