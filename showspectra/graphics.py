@@ -90,6 +90,10 @@ class SpectrumCanvas(MplCanvas):
                 self.axes = None
             except:
                 pass
+            # Focus
+            self.setFocusPolicy(Qt.ClickFocus)
+            self.setFocus()
+            
             # Define figure
             self.fig.set_edgecolor('none')
             self.axes = self.fig.add_axes([0.12,0.15,.8,.78])
@@ -116,6 +120,34 @@ class SpectrumCanvas(MplCanvas):
             # Spectrum error
             self.errspec, = self.axes.plot(wave,gal.ec,color='g')
             self.errspec.set_visible(parent.showErr)
+
+            # Lines
+            self.annotations = []
+            font = FontProperties(family='DejaVu Sans', size=12)
+            xlim0,xlim1 = self.axes.get_xlim()
+            ylim0,ylim1 = self.axes.get_ylim()
+            dy = ylim1-ylim0
+
+            for line in self.Lines.keys():
+                nline = self.Lines[line][0]
+                wline = self.Lines[line][1]
+                if (wline > xlim0 and wline < xlim1):
+                    wdiff = abs(wave - wline)
+                    imin = np.argmin(wdiff)
+                    y = flux[imin]
+                    y1 = y
+                    if (ylim1 - (y+0.2*dy)) > ((y-0.2*dy)-ylim0):
+                        y2 = y + 0.2*dy
+                    else:
+                        y2 = y - 0.2*dy
+                        annotation = self.axes.annotate(nline, xy=(wline,y1), xytext=(wline,y2),
+                                                        color='purple', alpha = 0.4, arrowsprops = dict(edgecolor='purple',
+                                                                                                        facecolor = 'y',arrowstyle='-',
+                                                                                                        alpha=0.4,
+                                                                                                        connectionstyle = 'angle, angleA=0,angleB=90,rad=10'),
+                                                        rotation = 90, fontstyle='italic',fontproperties=font, visible = True)
+                        annotation.draggable()
+                        self.annotations.append(annotation)
             
             self.draw_idle()
         
