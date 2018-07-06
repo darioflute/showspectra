@@ -192,8 +192,6 @@ class GUI (QMainWindow):
                 self.ngal = 0
                 self.ngalaxies = len(self.galaxies)
 
-            self.showSky = True
-            self.showErr = True
             self.sp.computeInitialFigure(self)
         
 

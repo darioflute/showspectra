@@ -115,19 +115,39 @@ class selectFiles(QDialog):
     def selectFlux(self):
         self.flux = self.selectFile('Flux')
         if self.flux is not None:
-            head, tail = os.path.split(self.flux)
-            self.b1.setText('Flux: '+tail)
+            path, file = os.path.split(self.flux)
+            self.b1.setText('Flux: '+file)
+            # Try to guess error and sky files from the same directory
+            from glob import glob as gb
+            import re
+            files = gb(path + '/*.fit*')
+            print('Files are ',files)
+            r = re.compile(".*err.*\.fits*",flags = re.IGNORECASE)
+            rErr = list(filter(r.match,files))
+            if rErr is not None:
+                self.err = rErr[0]
+                head, tail = os.path.split(self.err)
+                self.b2.setText('Err: '+tail)
+            r = re.compile(".*sky.*\.fits*",flags = re.IGNORECASE)
+            rSky = list(filter(r.match,files))
+            if rSky is not None:
+                self.sky = rSky[0] 
+                head, tail = os.path.split(self.sky)
+                self.b3.setText('Sky: '+tail)
+           
+
+            
 
     def selectErr(self):
         self.err = self.selectFile('Error')
         if self.err is not None:
-            head, tail = os.path.split(self.flux)
+            head, tail = os.path.split(self.err)
             self.b2.setText('Err: '+tail)
             
     def selectSky(self):
         self.sky = self.selectFile('Sky')
         if self.sky is not None:
-            head, tail = os.path.split(self.flux)
+            head, tail = os.path.split(self.sky)
             self.b3.setText('Sky: '+tail)
         
     def selectFile(self,label):
