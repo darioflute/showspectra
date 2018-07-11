@@ -1,7 +1,7 @@
 
 from astropy.io.fits import getdata
 import numpy as np
-from spectra import *
+from showspectra.spectra import *
 import re
 
 

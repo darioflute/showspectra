@@ -65,7 +65,7 @@ class SpectrumCanvas(MplCanvas):
         MplCanvas.__init__(self,*args, **kwargs)
 
         # Import lines
-        from lines import define_lines
+        from showspectra.lines import define_lines
         self.Lines = define_lines()
 
 

@@ -10,9 +10,9 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QTabWidget, QTa
 from PyQt5.QtGui import QIcon, QImage, QStandardItem, QStandardItemModel, QPixmap, QMovie
 from PyQt5.QtCore import Qt, QSize, QTimer, QThread, QObject, pyqtSignal
 
-from graphics import SpectrumCanvas, NavigationToolbar
-from dialogs  import selectTelescope, selectFiles
-from inout    import saveAnalysis, recoverAnalysis
+from showspectra.graphics import SpectrumCanvas, NavigationToolbar
+from showspectra.dialogs  import selectTelescope, selectFiles
+from showspectra.inout    import saveAnalysis, recoverAnalysis
 
 
 class GUI (QMainWindow):
@@ -80,9 +80,9 @@ class GUI (QMainWindow):
         """ Import library of the telescope """
 
         if self.telescope == 'WIYN':
-            from wiyn import getSky, getGalaxies, getErrors
+            from showspectra.wiyn import getSky, getGalaxies, getErrors
         elif self.telescope == 'VIMOS':
-            from vimos import getSky, getGalaxies, getErrors
+            from showspectra.vimos import getSky, getGalaxies, getErrors
         else:
             print("Telescope "+self.telescope+" is not yet supported.")
         
@@ -165,9 +165,9 @@ class GUI (QMainWindow):
 
         # Import telescope library
         if self.telescope == 'WIYN':
-            from wiyn import getSky, getGalaxies, getErrors
+            from showspectra.wiyn import getSky, getGalaxies, getErrors
         elif self.telescope == 'VIMOS':
-            from vimos import getSky, getGalaxies, getErrors
+            from showspectra.vimos import getSky, getGalaxies, getErrors
         else:
             print("Telescope "+self.telescope+" is not yet supported.")
 
@@ -195,8 +195,8 @@ class GUI (QMainWindow):
             self.sp.computeInitialFigure(self)
         
 
-if __name__ == '__main__':
-#def main():
+#if __name__ == '__main__':
+def main():
     app = QApplication(sys.argv)
     gui = GUI()
         
