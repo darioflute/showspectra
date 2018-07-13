@@ -74,11 +74,19 @@ class SpectrumCanvas(MplCanvas):
 
             # Define figure
             self.fig.set_edgecolor('none')
-            self.axes = self.fig.add_axes([0.10, 0.10, .85, .78])
+            self.axes = self.fig.add_axes([0.10, 0.10, .85, .78], label='mainax')
             self.axes.format_coord = lambda x, y: "{:8.4f} A  {:10.4f} W/m2/Hz".format(x, y)
             self.axes.spines['top'].set_visible(False)
             self.axes.spines['right'].set_visible(False)
             self.axes.grid(True, which='both')
+
+            # Next/Previous
+            self.axprev = self.fig.add_axes([0.03, 0.3, 0.04, 0.04], label='axprev')
+            self.axnext = self.fig.add_axes([0.03, 0.35, 0.04, 0.04], label='axnext')
+            self.bnext = Button(self.axnext, '>>', color='powderblue', hovercolor='lightskyblue')
+            self.bnext.on_clicked(self.next)
+            self.bprev = Button(self.axprev, '<<', color='powderblue', hovercolor='lightskyblue')
+            self.bprev.on_clicked(self.prev)
 
             # Initial set for visibility
             self.showFlux = True
@@ -100,7 +108,7 @@ class SpectrumCanvas(MplCanvas):
         self.ngal = parent.ngal
         self.gal = parent.galaxies[self.ngal]
         gal = parent.galaxies[self.ngal]
-        print('z is ', gal.z)
+        # print('z is ', gal.z)
         wave = gal.wc / (1. + gal.z)
         flux = gal.fc
         # if self.filter:
@@ -167,7 +175,7 @@ class SpectrumCanvas(MplCanvas):
         lns = self.fluxLine + self.errLine + self.skyLine + self.linesLine
         lines = [self.galspec, self.errspec, self.skyspec, self.linesLayer]
         self.labs = [l.get_label() for l in lns]
-        leg = self.axes.legend(lns, self.labs, loc='center right', bbox_to_anchor=(-0.03, 0.6),
+        leg = self.axes.legend(lns, self.labs, loc='center left', bbox_to_anchor=(-0.13, 0.6),
                                fancybox=True, shadow=True, ncol=1)
         leg.draggable()
         self.lined = dict()
@@ -181,22 +189,15 @@ class SpectrumCanvas(MplCanvas):
         self.fig.canvas.mpl_connect('button_release_event', self.onrelease)
         self.dragged = None
         self.pick_pos = None
-        # Next/Previous
-        axprev = self.fig.add_axes([0.03, 0.3, 0.04, 0.04])
-        axnext = self.fig.add_axes([0.03, 0.4, 0.04, 0.04])
-        bnext = Button(axnext, '>>', color='powderblue', hovercolor='lightskyblue')
-        bnext.on_clicked(self.next)
-        bprev = Button(axprev, '<<', color='powderblue', hovercolor='lightskyblue')
-        bprev.on_clicked(self.prev)
         self.draw_idle()
 
     def next(self, event):
-        self.ngal += 1
+        self.parent.ngal += 1
         self.drawSpectrum(self.parent)
 
     def prev(self, event):
-        if self.ngal > 0:
-            self.ngal -= 1
+        if self.parent.ngal > 0:
+            self.parent.ngal -= 1
             self.drawSpectrum(self.parent)
 
     def changeVisibility(self, label):
@@ -267,7 +268,7 @@ class SpectrumCanvas(MplCanvas):
             return None
 
     def onrelease(self, event):
-        print('release event is ', event)
+        # print('release event is ', event)
         if self.dragged is not None and self.pick_pos is not None:
             x1 = event.xdata
             x0 = self.pick_pos
