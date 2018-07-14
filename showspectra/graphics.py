@@ -75,18 +75,18 @@ class SpectrumCanvas(MplCanvas):
             # Define figure
             self.fig.set_edgecolor('none')
             self.axes = self.fig.add_axes([0.10, 0.10, .85, .78], label='mainax')
-            self.axes.format_coord = lambda x, y: "{:8.4f} A  {:10.4f} W/m2/Hz".format(x, y)
+            self.axes.format_coord = lambda x, y: "{:6.2f} A  {:10.4e} W/m2/Hz".format(x, y)
             self.axes.spines['top'].set_visible(False)
             self.axes.spines['right'].set_visible(False)
             self.axes.grid(True, which='both')
 
             # Next/Previous
-            self.axprev = self.fig.add_axes([0.03, 0.3, 0.04, 0.04], label='axprev')
-            self.axnext = self.fig.add_axes([0.03, 0.35, 0.04, 0.04], label='axnext')
+            self.axprev = self.fig.add_axes([0.03, 0.90, 0.04, 0.04], label='axprev')
+            self.axnext = self.fig.add_axes([0.03, 0.85, 0.04, 0.04], label='axnext')
             self.bnext = Button(self.axnext, '>>', color='powderblue', hovercolor='lightskyblue')
-            self.bnext.on_clicked(self.next)
+            self.bnext.on_clicked(self.nextspec)
             self.bprev = Button(self.axprev, '<<', color='powderblue', hovercolor='lightskyblue')
-            self.bprev.on_clicked(self.prev)
+            self.bprev.on_clicked(self.prevspec)
 
             # Initial set for visibility
             self.showFlux = True
@@ -108,7 +108,6 @@ class SpectrumCanvas(MplCanvas):
         self.ngal = parent.ngal
         self.gal = parent.galaxies[self.ngal]
         gal = parent.galaxies[self.ngal]
-        # print('z is ', gal.z)
         wave = gal.wc / (1. + gal.z)
         flux = gal.fc
         # if self.filter:
@@ -131,14 +130,18 @@ class SpectrumCanvas(MplCanvas):
         self.errLine = self.axes.plot(wave, gal.ec, color='g', label='Err')
         self.errspec, = self.errLine
         self.errspec.set_visible(self.showErr)
-
         # Fake line to have the lines in the legend
         self.linesLine = self.axes.plot([0, 0.1], [0, 0], color='purple',
-                                        alpha=0.4, label='Lines', zorder=11)
+                                        alpha=1.0, label='Lines', zorder=11)
         self.linesLayer, = self.linesLine
-        self.zannotation = self.axes.annotate(" z = {:.4f}".format(self.gal.z), xy=(-0.1, 0.9),
+        # Annotations
+        # Redshift
+        self.zannotation = self.axes.annotate(" z = {:.4f}".format(self.gal.z), xy=(-0.1, 0.7),
                                               picker=5, xycoords='axes fraction')
-        # Lines
+        # Number of galaxy spectrum
+        self.sannotation = self.axes.annotate(" n = {:03d}".format(self.ngal), xy=(-0.1, 0.8),
+                                              picker=5, xycoords='axes fraction')
+        # Line names
         self.annotations = []
         font = FontProperties(family='DejaVu Sans', size=12)
         xlim0, xlim1 = self.axes.get_xlim()
@@ -173,29 +176,30 @@ class SpectrumCanvas(MplCanvas):
                 self.annotations.append(annotation)
         # Prepare legend
         lns = self.fluxLine + self.errLine + self.skyLine + self.linesLine
-        lines = [self.galspec, self.errspec, self.skyspec, self.linesLayer]
+        self.lines = [self.galspec, self.errspec, self.skyspec, self.linesLayer]
         self.labs = [l.get_label() for l in lns]
-        leg = self.axes.legend(lns, self.labs, loc='center left', bbox_to_anchor=(-0.13, 0.6),
-                               fancybox=True, shadow=True, ncol=1)
-        leg.draggable()
+        self.leg = self.axes.legend(lns, self.labs, loc='center left', bbox_to_anchor=(-0.13, 0.2),
+                                    fancybox=True, shadow=True, ncol=1)
+        self.leg.draggable()
         self.lined = dict()
         self.labed = dict()
-        for legline, origline, txt in zip(leg.get_lines(), lines, leg.texts):
+        for legline, origline, txt in zip(self.leg.get_lines(), self.lines, self.leg.texts):
             legline.set_picker(5)  # 5pts tolerance
             self.lined[legline] = origline
             self.labed[legline] = txt
-
+        # Connect canvas to events
         self.fig.canvas.mpl_connect('pick_event', self.onpick)
         self.fig.canvas.mpl_connect('button_release_event', self.onrelease)
         self.dragged = None
         self.pick_pos = None
         self.draw_idle()
 
-    def next(self, event):
-        self.parent.ngal += 1
-        self.drawSpectrum(self.parent)
+    def nextspec(self, event):
+        if self.parent.ngal < self.parent.ngalaxies - 1:
+            self.parent.ngal += 1
+            self.drawSpectrum(self.parent)
 
-    def prev(self, event):
+    def prevspec(self, event):
         if self.parent.ngal > 0:
             self.parent.ngal -= 1
             self.drawSpectrum(self.parent)
@@ -224,21 +228,29 @@ class SpectrumCanvas(MplCanvas):
                 self.showLines ^= True
                 for annotation in self.annotations:
                     annotation.set_visible(self.showLines)
+                vis = self.showLines
             elif label == 'Flux':
                 self.showFlux ^= True
                 self.galspec.set_visible(self.showFlux)
+                vis = self.showFlux
             elif label == 'Err':
                 self.showErr ^= True
                 self.errspec.set_visible(self.showErr)
+                vis = self.showErr
             elif label == 'Sky':
                 self.showSky ^= True
                 self.skyspec.set_visible(self.showSky)
+                vis = self.showSky
             else:
-                origline = self.lined[legline]
-                # txt = self.labed[legline]
-                vis = not origline.get_visible()
-                # print("label ",label," origline ",origline,'txt ',txt)
-                origline.set_visible(vis)
+                print('Unknown label')
+            # Transparency of legend
+            if vis:
+                alpha = 1.0
+            else:
+                alpha = 0.3
+            legline.set_alpha(alpha)
+            txt = self.labed[legline]
+            txt.set_alpha(alpha)
             self.draw_idle()
         elif isinstance(event.artist, Text):
             # text = event.artist.get_text()
@@ -248,22 +260,44 @@ class SpectrumCanvas(MplCanvas):
                 if znew is not None:
                     if znew != self.gal.z:
                         self.gal.z = znew
-                        for annotation in self.annotations:
-                            annotation.remove()
-                        self.zannotation.remove()
+                        self.removeAnnotations()
+                        self.drawSpectrum(self.parent)
+            elif event.artist == self.sannotation:
+                nnew = self.getInt(self.ngal)
+                if nnew is not None:
+                    if nnew != self.parent.ngal:
+                        self.parent.ngal = nnew
+                        self.removeAnnotations()
                         self.drawSpectrum(self.parent)
             else:
                 self.dragged = event.artist
                 self.pick_pos = event.mouseevent.xdata
         else:
-            print('Other pick event ', event.artist)
+            if event.artist == 'Legend':
+                pass
+            else:
+                print('Other pick event ', event.artist)
             pass
         return True
+
+    def removeAnnotations(self):
+        for annotation in self.annotations:
+            annotation.remove()
+        self.sannotation.remove()
+        self.zannotation.remove()
 
     def getDouble(self, z):
         znew, okPressed = QInputDialog.getDouble(self, "Redshift", "z", z, -10000., 50000., 2)
         if okPressed:
             return znew
+        else:
+            return None
+
+    def getInt(self, n):
+        nnew, okPressed = QInputDialog.getInt(self, "Spectrum no", "n", n, 0,
+                                              self.parent.ngalaxies, 2)
+        if okPressed:
+            return nnew
         else:
             return None
 
