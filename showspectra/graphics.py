@@ -16,7 +16,7 @@ rcParams['font.family'] = 'STIXGeneral'
 rcParams['font.size'] = 13
 rcParams['mathtext.fontset'] = 'stix'
 rcParams['legend.numpoints'] = 1
-
+from scipy.signal import savgol_filter
 
 class MplCanvas(FigureCanvas):
     """Basic matplotlib canvas class."""
@@ -81,13 +81,22 @@ class SpectrumCanvas(MplCanvas):
             self.axes.grid(True, which='both')
 
             # Next/Previous
-            self.axprev = self.fig.add_axes([0.03, 0.90, 0.04, 0.04], label='axprev')
-            self.axnext = self.fig.add_axes([0.03, 0.85, 0.04, 0.04], label='axnext')
-            self.bnext = Button(self.axnext, '>>', color='powderblue', hovercolor='lightskyblue')
+            self.axprev = self.fig.add_axes([0.50, 0.85, 0.02, 0.04], label='axprev')
+            self.axnext = self.fig.add_axes([0.53, 0.85, 0.02, 0.04], label='axnext')
+            for a in ['top','bottom','right','left']:
+                self.axprev.spines[a].set_visible(False)
+                self.axnext.spines[a].set_visible(False)
+            # self.bnext = Button(self.axnext, '>>', color='powderblue', hovercolor='lightskyblue')
+            self.bnext = Button(self.axnext, '>>', color='white', hovercolor='white')
             self.bnext.on_clicked(self.nextspec)
-            self.bprev = Button(self.axprev, '<<', color='powderblue', hovercolor='lightskyblue')
+            self.bprev = Button(self.axprev, '<<', color='white', hovercolor='white')
             self.bprev.on_clicked(self.prevspec)
-
+            # Filter
+            self.filter = False
+            self.axfilt = self.fig.add_axes([0.03, 0.80, 0.04, 0.04], label='axnext')
+            self.bfilt = Button(self.axfilt, 'Filter off', color='powderblue', 
+                                hovercolor='lightskyblue')
+            self.bfilt.on_clicked(self.applyFilter)
             # Initial set for visibility
             self.showFlux = True
             self.showSky = True
@@ -104,14 +113,17 @@ class SpectrumCanvas(MplCanvas):
     def drawSpectrum(self, parent):
 
         self.axes.clear()
+        self.axes.set_xlabel('Wavelength [$\AA$]')
+        self.axes.set_ylabel('Flux [$W\,m^{-2}\,Hz^{-1}$]')
         self.parent = parent
         self.ngal = parent.ngal
         self.gal = parent.galaxies[self.ngal]
         gal = parent.galaxies[self.ngal]
         wave = gal.wc / (1. + gal.z)
-        flux = gal.fc
-        # if self.filter:
-        #    flux = savgol_filter(flux, 7, 3)
+        if self.filter:
+            flux = savgol_filter(gal.fc, 7, 3)
+        else:
+            flux = gal.fc
         self.fluxLine = self.axes.plot(wave, flux, label='Flux')
         self.galspec, = self.fluxLine
         self.axes.set_xlim([gal.xlim1, gal.xlim2])
@@ -127,19 +139,24 @@ class SpectrumCanvas(MplCanvas):
         self.skyspec, = self.skyLine
         self.skyspec.set_visible(self.showSky)
         # Spectrum error
-        self.errLine = self.axes.plot(wave, gal.ec, color='g', label='Err')
+        self.errLine = self.axes.plot(wave, gal.ec, color='g', label='Error')
         self.errspec, = self.errLine
         self.errspec.set_visible(self.showErr)
         # Fake line to have the lines in the legend
         self.linesLine = self.axes.plot([0, 0.1], [0, 0], color='purple',
                                         alpha=1.0, label='Lines', zorder=11)
         self.linesLayer, = self.linesLine
+        # Fake line to have the lines in the legend
+        self.filterLine = self.axes.plot([0, 0.1], [0, 0], '--', color='skyblue',
+                                        alpha=1.0, label='Filter', zorder=11)
+        self.filterLayer, = self.filterLine
         # Annotations
-        # Redshift
-        self.zannotation = self.axes.annotate(" z = {:.4f}".format(self.gal.z), xy=(-0.1, 0.7),
-                                              picker=5, xycoords='axes fraction')
         # Number of galaxy spectrum
-        self.sannotation = self.axes.annotate(" n = {:03d}".format(self.ngal), xy=(-0.1, 0.8),
+        self.sannotation = self.axes.annotate("{:3d}".format(self.ngal), xytext=(0.50, 0.98),
+                                              xy=(0.50,0.98), ha='center', picker=5, 
+                                              textcoords='axes fraction', xycoords='axes fraction')
+        # Redshift
+        self.zannotation = self.axes.annotate(" z = {:.4f}".format(self.gal.z), xy=(-0.08, 0.75),
                                               picker=5, xycoords='axes fraction')
         # Line names
         self.annotations = []
@@ -166,6 +183,7 @@ class SpectrumCanvas(MplCanvas):
                         y2 = y - 0.2 * dy
                 annotation = self.axes.annotate(nline0, xy=(wline, y1), xytext=(wline, y2),
                                                 color='purple', alpha=0.4, visible=self.showLines,
+                                                ha='center',
                                                 arrowprops=dict(edgecolor='purple', facecolor='y',
                                                                 arrowstyle='-', alpha=0.4,
                                                                 connectionstyle='angle, angleA=0,' +
@@ -175,10 +193,10 @@ class SpectrumCanvas(MplCanvas):
                 annotation.draggable()
                 self.annotations.append(annotation)
         # Prepare legend
-        lns = self.fluxLine + self.errLine + self.skyLine + self.linesLine
-        self.lines = [self.galspec, self.errspec, self.skyspec, self.linesLayer]
+        lns = self.fluxLine + self.errLine + self.skyLine + self.linesLine + self.filterLine
+        self.lines = [self.galspec, self.errspec, self.skyspec, self.linesLayer,self.filterLayer]
         self.labs = [l.get_label() for l in lns]
-        self.leg = self.axes.legend(lns, self.labs, loc='center left', bbox_to_anchor=(-0.13, 0.2),
+        self.leg = self.axes.legend(lns, self.labs, loc='center left', bbox_to_anchor=(-0.08, 0.2),
                                     fancybox=True, shadow=True, ncol=1)
         self.leg.draggable()
         self.lined = dict()
@@ -195,14 +213,28 @@ class SpectrumCanvas(MplCanvas):
         self.draw_idle()
 
     def nextspec(self, event):
-        if self.parent.ngal < self.parent.ngalaxies - 1:
+        if self.parent.ngal < (self.parent.ngalaxies - 1):
             self.parent.ngal += 1
             self.drawSpectrum(self.parent)
+        else:
+            print('There are no spectra left')
 
     def prevspec(self, event):
         if self.parent.ngal > 0:
             self.parent.ngal -= 1
             self.drawSpectrum(self.parent)
+        else:
+            print('First spectrum reached')
+
+    def applyFilter(self, event):
+        self.filter ^= True
+        self.drawSpectrum(self.parent)
+        if self.filter:
+            print('Filter on')
+            self.bfilt.label.set_text('Filter on')
+        else:
+            self.bfilt.label.set_text('Filter off')
+            print('Filter off')
 
     def changeVisibility(self, label):
         print('Called change visibility')
@@ -233,7 +265,7 @@ class SpectrumCanvas(MplCanvas):
                 self.showFlux ^= True
                 self.galspec.set_visible(self.showFlux)
                 vis = self.showFlux
-            elif label == 'Err':
+            elif label == 'Error':
                 self.showErr ^= True
                 self.errspec.set_visible(self.showErr)
                 vis = self.showErr
@@ -241,6 +273,9 @@ class SpectrumCanvas(MplCanvas):
                 self.showSky ^= True
                 self.skyspec.set_visible(self.showSky)
                 vis = self.showSky
+            elif label == 'Filter':
+                self.applyFilter(event)
+                vis = self.filter
             else:
                 print('Unknown label')
             # Transparency of legend
