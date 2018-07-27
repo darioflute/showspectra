@@ -129,6 +129,8 @@ class GUI (QMainWindow):
         self.tb.setObjectName('toolbar')
 
         # Actions
+        self.maskAction = self.createAction(self.path0+ '/icons/mask.png', 
+                                            'Mask spectrum', 'Ctrl+m', self.maskSpectrum)
         self.openAction = self.createAction(self.path0 + '/icons/open.png',
                                             'Open files', 'Ctrl+o', self.fileOpen)
         self.teleAction = self.createAction(self.path0 + '/icons/telescope.png',
@@ -139,6 +141,7 @@ class GUI (QMainWindow):
         # 'Help','Ctrl+q',self.onHelp)
 
         # Add actions
+        self.tb.addAction(self.maskAction)
         self.tb.addAction(self.teleAction)
         self.tb.addAction(self.openAction)
         self.tb.addAction(self.quitAction)
@@ -153,6 +156,15 @@ class GUI (QMainWindow):
     def fileQuit(self):
         """Quitting the program."""
         self.close()
+        
+    def maskSpectrum(self):
+        """Mask spectrum mode."""
+        try:
+            self.sp.showMask ^= True
+            self.sp.span.active ^= True
+        except BaseException:
+            print('No spectrum defined')
+            pass
 
     def fileOpen(self):
         """Opening spectral files."""
@@ -202,9 +214,12 @@ def main():
     app.setApplicationVersion('0.01-beta')
 
     # Select telescope
-    TD = selectTelescope()
-    if TD.exec_() == QDialog.Accepted:
-        gui.telescope = TD.save()
-        print('Selected telescope: ', gui.telescope)
+    gui.selTelescope()
+    #TD = selectTelescope()
+    #if TD.exec_() == QDialog.Accepted:
+    #    gui.telescope = TD.save()
+    #    print('Selected telescope: ', gui.telescope)
+    #    # Select first files
+    gui.fileOpen()
 
     sys.exit(app.exec_())
