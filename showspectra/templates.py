@@ -1,15 +1,13 @@
 import numpy as np
 from astropy.io.fits import getdata
-import os
 import collections
 
 
 class Template(object):
-    """SDSS template spectrum."""
-
+    """ SDSS template spectrum """
     def __init__(self, wave, flux, template):
         self.w = wave
-        self.f = flux      # flux for cross-correlation
+        self.f = flux     # flux for cross-correlation
         self.t = template  # flux for display
 
 
@@ -29,18 +27,19 @@ def readTemplates(self):
     # spDR2-029.fit -- QSO
     # spDR2-032.fit -- High-luminosity QSO
     # extension 1 contains the spectrum after median filtering subtraction
-    here = os.path.abspath(os.path.dirname(__file__))
-    path = here + '/Templates/'
-    self.EarlyTypeGalaxy = readSdssTemplate(path + 'spDR2-023.fit')
-    self.Galaxy1 = readSdssTemplate(path + 'spDR2-024.fit')
-    self.Galaxy2 = readSdssTemplate(path + 'spDR2-025.fit')
-    self.Galaxy3 = readSdssTemplate(path + 'spDR2-026.fit')
-    self.LateTypeGalaxy = readSdssTemplate(path + 'spDR2-027.fit')
-    self.LumRedGalaxy = readSdssTemplate(path + 'spDR2-028.fit')
-    self.QSO = readSdssTemplate(path + 'spDR2-029.fit')
+    # here = os.path.abspath(os.path.dirname(__file__))
+    path = self.path0 + '/Templates/'
+    self.EarlyTypeGalaxy = readSdssTemplate(path + 'spDR2-023.fit.gz')
+    self.Galaxy1 = readSdssTemplate(path + 'spDR2-024.fit.gz')
+    self.Galaxy2 = readSdssTemplate(path + 'spDR2-025.fit.gz')
+    self.Galaxy3 = readSdssTemplate(path + 'spDR2-026.fit.gz')
+    self.LateTypeGalaxy = readSdssTemplate(path + 'spDR2-027.fit.gz')
+    self.LumRedGalaxy = readSdssTemplate(path + 'spDR2-028.fit.gz')
+    self.QSO = readSdssTemplate(path + 'spDR2-029.fit.gz')
     #        self.BALQSO1 = readSdssTemplate(path+'spDR2-030.fit')
     #        self.BALQSO2 = readSdssTemplate(path+'spDR2-031.fit')
     #        self.HighLumQSO = readSdssTemplate(path+'spDR2-032.fit')
+
     self.templates = collections.OrderedDict()
     self.templates['EarlyTypeGalaxy'] = self.EarlyTypeGalaxy
     self.templates['LateTypeGalaxy'] = self.LateTypeGalaxy

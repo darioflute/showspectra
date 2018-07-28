@@ -1,7 +1,9 @@
 import os
 from PyQt5.QtWidgets import (QDialog, QPushButton, QGroupBox,
                              QHBoxLayout, QVBoxLayout, QGridLayout,
-                             QRadioButton, QButtonGroup, QFileDialog)
+                             QRadioButton, QButtonGroup, QFileDialog,
+                             QListWidget, QListWidgetItem)
+from PyQt5.QtCore import QSize
 
 
 class selectTelescope(QDialog):
@@ -156,5 +158,47 @@ class selectFiles(QDialog):
     def save(self):
         return self.flux, self.err, self.sky
 
+    def Cancel(self):
+        self.done(0)
+
+
+class selectRedshift(QDialog):
+    """Selection of optimal redshift/template from a list of cross-correlations with templates."""
+    
+    def __init__(self, z, sz, snr, temps, parent=None):
+        super().__init__()
+        self.z = z
+        self.sz = sz
+        self.snr = snr
+        self.temps = temps
+        self.zlist = ["z = %.5f +/- %.5f (snr %.1f) %s" % (z, sz, snr, t) for (z, sz, snr, t) \
+                      in zip(self.z, self.sz, self.snr, self.temps)]
+        self.setupUI()
+
+    def setupUI(self):
+        self.setWindowTitle("Select best template redshift")
+        layout = QVBoxLayout()
+        hbox = QHBoxLayout()
+        hgroup = QGroupBox()
+        self.list = QListWidget(self)
+        for z in self.zlist:
+            item = QListWidgetItem(self.list)
+            item.setText(z)
+        self.list.setMaximumSize(QSize(400,100))
+        self.button1 = QPushButton("OK")
+        self.button1.clicked.connect(self.OK)
+        self.button2 = QPushButton("Cancel")
+        self.button2.clicked.connect(self.Cancel)
+        hbox.addWidget(self.button1)
+        hbox.addWidget(self.button2)
+        hgroup.setLayout(hbox)
+        # Layout
+        layout.addWidget(self.list)
+        layout.addWidget(hgroup)
+        self.setLayout(layout)
+
+    def OK(self):
+        self.done(1)
+        
     def Cancel(self):
         self.done(0)

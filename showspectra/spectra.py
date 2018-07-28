@@ -16,7 +16,7 @@ class Galaxy(object):
         self.ec = np.ones(len(wave))  # initialize to same error
         self.z = 0.  # initialize redshift
         self.dz = 0.  # initialize redshift error
-        self.zTemplate = ''  # template with best cross-correlation
+        self.zTemplate = None  # template with best cross-correlation
         self.spectype = None  # type (?,star,galaxy,broadAGN,sky)
         self.quality = None  # quality ( OK,guess,?)
         self.xlim1 = min(wave)

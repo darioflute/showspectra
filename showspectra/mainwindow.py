@@ -10,7 +10,8 @@ from PyQt5.QtCore import Qt
 from showspectra.graphics import SpectrumCanvas, NavigationToolbar
 from showspectra.dialogs import selectTelescope, selectFiles
 from showspectra.inout import recoverAnalysis
-
+from showspectra.templates import readTemplates
+from showspectra.xcorr import cross_correlation
 
 class GUI (QMainWindow):
 
@@ -38,6 +39,7 @@ class GUI (QMainWindow):
             self.setStyleSheet(fh.read())
 
         self.initUI()
+                
 
     def initUI(self):
         """User interface."""
@@ -129,8 +131,10 @@ class GUI (QMainWindow):
         self.tb.setObjectName('toolbar')
 
         # Actions
-        self.maskAction = self.createAction(self.path0+ '/icons/mask.png', 
+        self.maskAction = self.createAction(self.path0 + '/icons/mask.png',
                                             'Mask spectrum', 'Ctrl+m', self.maskSpectrum)
+        self.xcorrAction = self.createAction(self.path0 + '/icons/galaxy.png',
+                                            'Cross-correlate with templates', 'Ctrl+x', self.xcorrSpectrum)
         self.openAction = self.createAction(self.path0 + '/icons/open.png',
                                             'Open files', 'Ctrl+o', self.fileOpen)
         self.teleAction = self.createAction(self.path0 + '/icons/telescope.png',
@@ -142,6 +146,7 @@ class GUI (QMainWindow):
 
         # Add actions
         self.tb.addAction(self.maskAction)
+        self.tb.addAction(self.xcorrAction)
         self.tb.addAction(self.teleAction)
         self.tb.addAction(self.openAction)
         self.tb.addAction(self.quitAction)
@@ -156,15 +161,22 @@ class GUI (QMainWindow):
     def fileQuit(self):
         """Quitting the program."""
         self.close()
-        
+
     def maskSpectrum(self):
         """Mask spectrum mode."""
         try:
-            self.sp.showMask ^= True
+            self.sp.showMask = True
             self.sp.span.active ^= True
         except BaseException:
             print('No spectrum defined')
             pass
+        
+    def xcorrSpectrum(self):
+        """Cross-correlate a spectrum with SDSS templates."""   
+        self.sp.showTemplate = True
+        cross_correlation(self)
+
+        
 
     def fileOpen(self):
         """Opening spectral files."""
@@ -213,13 +225,10 @@ def main():
     app.setApplicationName('SHOWSPECTRA')
     app.setApplicationVersion('0.01-beta')
 
-    # Select telescope
+    # Select telescope and open first files
     gui.selTelescope()
-    #TD = selectTelescope()
-    #if TD.exec_() == QDialog.Accepted:
-    #    gui.telescope = TD.save()
-    #    print('Selected telescope: ', gui.telescope)
-    #    # Select first files
     gui.fileOpen()
+    # Read spectral templates into the gui
+    readTemplates(gui)
 
     sys.exit(app.exec_())

@@ -1,13 +1,11 @@
 import numpy as np
 from lmfit import Parameters, minimize
 from scipy.ndimage.filters import median_filter
-
-from showspectra.graphics import drawSpectrum
-
+from showspectra.dialogs import selectRedshift
 
 def MAD(data, axis=None):
     """Median of absolute deviations."""
-
+    return np.nanmedian(np.absolute(data - np.nanmedian(data, axis)), axis)
 
 def gaussResiduals(p, x, data=None):
     v = p.valuesdict()
@@ -70,7 +68,7 @@ def computeXcorr(wg, fg, eg, template):
             n1 = 0
         if n2 > len(cc):
             n2 = len(cc)
-        ind = range(n1, i - 2) + range(i + 2, n2)
+        ind = list(range(n1, i - 2)) + list(range(i + 2, n2))
         # val = (cc[i]-np.median(cc[n1:n2]))/np.std(cc)  # this works but misses some cases
         # val = (cc[i]-np.median(cc[ind]))/self.mad(cc[ind])  # this works pretty well
         # val = np.median(cc[i]-cc[n1:n2])/self.mad(cc[n1:n2])  # this works pretty well
@@ -124,10 +122,10 @@ def computeXcorr(wg, fg, eg, template):
 def cross_correlation(self):
     """Cross correlation between galaxy spectrum and templates."""
     # A) subtract continuum from galaxy spectrum
-    gal = self.galaxies[self.ngal]
-    wg = gal.wc.copy()
-    fg = gal.fc.copy()
-    eg = gal.ec.copy()
+    self.gal = self.galaxies[self.ngal]
+    wg = self.gal.wc.copy()
+    fg = self.gal.fc.copy()
+    eg = self.gal.ec.copy()
     # Does not work with VIMOS data, but it works better with WIYN ...
     if self.telescope == 'wiyn':
         fg /= eg
@@ -155,31 +153,36 @@ def cross_correlation(self):
     z = np.array(z)
     sz = np.array(sz)
     snr = np.array(snr)
+    temps = np.array(temps)
 
-    # Print the top three x-correlations
+    # Print the top five x-correlations
     idx = np.argsort(snr)
     idxs = idx[-5:]
     idxs = idxs[::-1]  # reverse list
     self.zxcorr = z[idxs]
     self.szxcorr = sz[idxs]
-    self.txcorr = np.array(temps)[idxs]
+    self.txcorr = temps[idxs]
     self.snrxcorr = snr[idxs]
     for i in range(len(idxs)):
         ii = idxs[i]
         print("Best xcorr: z {0:.5f}".format(z[ii]),
-              " sz {0:.5f}".format(sz[ii]), " snr {0:.3f}".format(snr[ii]), temps[ii])
+              " sz {0:.5f}".format(sz[ii]),
+              " snr {0:.3f}".format(snr[ii]),
+              temps[ii])
     idx = (z > 0) & (snr > 3)
     if idx.sum() > 0:
         snr0 = snr[idx]
         idx, = np.where(snr == max(snr0))
-        gal.z = z[idx[0]]
-        gal.dz = sz[idx[0]]
-        gal.zTemplate = temps[idx]
-        gal.limits()
+        self.gal.z = z[idx[0]]
+        self.gal.dz = sz[idx[0]]
+        self.gal.zTemplate = temps[idx[0]]
+        self.gal.limits()
         self.showTemplate = True
-        drawSpectrum(self)
+        self.sp.drawSpectrum()
         # Prompt a dialogue window to show the best 5 x-corr and
         # the possibility to choose a different solution
-        self.chooseRedshift("&ChooseRedshift")
+        self.selectZ = selectRedshift(self.zxcorr, self.szxcorr, self.snrxcorr, self.txcorr)
+        self.selectZ.list.currentRowChanged.connect(self.sp.updateTemplate)
+        self.selectZ.exec_()
     else:
         print("No template fits the data")
