@@ -165,8 +165,9 @@ class GUI (QMainWindow):
     def maskSpectrum(self):
         """Mask spectrum mode."""
         try:
-            self.sp.showMask = True
             self.sp.span.active ^= True
+            if self.sp.span.active:
+                self.sp.showMask = True
         except BaseException:
             print('No spectrum defined')
             pass

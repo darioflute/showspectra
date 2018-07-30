@@ -64,9 +64,9 @@ class SpectrumCanvas(MplCanvas):
         self.ylimits = None
 
         # Activate focus
-        self.setFocusPolicy(Qt.ClickFocus)
-        self.setFocus()
-
+        # self.setFocusPolicy(Qt.ClickFocus)
+        # self.setFocus()
+        
     def computeInitialFigure(self, parent=None):
 
         if parent is None:
@@ -114,6 +114,20 @@ class SpectrumCanvas(MplCanvas):
             # Activate focus
             self.setFocusPolicy(Qt.ClickFocus)
             self.setFocus()
+            
+            # Activate mouse wheel for zooming
+            self.idw = self.mpl_connect('scroll_event', self.onWheel)
+            # Activate pressing button event (for panning with middle button)
+            self.mpl_connect('button_press_event', self.onPan)
+            self.mpl_connect('button_release_event', self.onRelease)
+            self.mpl_connect('motion_notify_event', self.onPan)
+            self._event = None  # Event for panning
+
+            # Start the span selector
+            self.span = SpanSelector(self.axes, self.onSelect, 'horizontal', useblit=True,
+                                     rectprops=dict(alpha=0.5, facecolor='LightSalmon'),button=1)
+            self.span.active = False
+
 
     def drawSpectrum(self):
 
@@ -269,14 +283,9 @@ class SpectrumCanvas(MplCanvas):
 
         # Connect canvas to events
         self.fig.canvas.mpl_connect('pick_event', self.onpick)
-        self.fig.canvas.mpl_connect('button_release_event', self.onrelease)
         self.dragged = None
         self.pick_pos = None
         self.draw_idle()
-        # Start the span selector
-        self.span = SpanSelector(self.axes, self.onSelect, 'horizontal', useblit=True,
-                                 rectprops=dict(alpha=0.5, facecolor='LightSalmon'))
-        self.span.active = False
         
     def drawTemplate(self):
         """ Overplot the template """
@@ -317,6 +326,7 @@ class SpectrumCanvas(MplCanvas):
     def nextspec(self, event):
         if self.parent.ngal < (self.parent.ngalaxies - 1):
             self.parent.ngal += 1
+            self.parent.galaxies[self.parent.ngal].limits()  ## recompute original limits
             self.drawSpectrum()
         else:
             print('There are no spectra left')
@@ -324,6 +334,7 @@ class SpectrumCanvas(MplCanvas):
     def prevspec(self, event):
         if self.parent.ngal > 0:
             self.parent.ngal -= 1
+            self.parent.galaxies[self.parent.ngal].limits()  ## recompute original limits
             self.drawSpectrum()
         else:
             print('First spectrum reached')
@@ -351,21 +362,24 @@ class SpectrumCanvas(MplCanvas):
     def onSelect(self, xmin, xmax):
         """
             Define a masked region.
-            If SHIFT is pressed, previous masks are deleted.
+            If SHIFT or CTRL (Command on Apple) is pressed, previous masks are deleted.
         """
         # Add region to clip mask
         indmin, indmax = np.searchsorted(self.wave, (xmin, xmax))
         # Check if SHIFT is on
         modifiers = QApplication.keyboardModifiers()
-        if modifiers == Qt.ShiftModifier:
+        if (modifiers == Qt.ShiftModifier) or (modifiers == Qt.ControlModifier):
+            # Unmask
             self.gal.c[indmin:indmax] = 1
-            self.drawSpectrum()
         else:
+            # Mask
             self.gal.c[indmin:indmax] = 0
             # Plot rectangle
-            self.axes.axvspan(xmin, xmax, facecolor='LightYellow', alpha=1, linewidth=0, zorder=1)
+            # self.axes.axvspan(xmin, xmax, facecolor='LightYellow', alpha=1, linewidth=0, zorder=1)
+        self.drawSpectrum()
 
     def onpick(self, event):
+        if event.mouseevent.button != 1: return 
         if isinstance(event.artist, Line2D):
             legline = event.artist
             label = legline.get_label()
@@ -442,6 +456,61 @@ class SpectrumCanvas(MplCanvas):
                 pass
             pass
         return True
+    
+    def onPan(self, event):
+        """Routine to pan using the middle button of the mouse."""
+        if event.button != 2: return
+        if event.name == 'button_press_event':
+            self._event = event
+        elif event.name == 'button_release_event':
+            self._event = None
+        elif event.name == 'motion_notify_event':
+            if self._event is None:
+                return
+            if event.x != self._event.x or event.y != self._event.y:
+                pixel_to_data = self.axes.transData.inverted()
+                data = pixel_to_data.transform_point((event.x, event.y))
+                data_ = pixel_to_data.transform_point((self._event.x, self._event.y))
+                dx = data[0]-data_[0]
+                dy = data[1]-data_[1]
+                if event.x != self._event.x:
+                    xlim = self.axes.get_xlim()
+                    self.axes.set_xlim(xlim[0]-dx, xlim[1]-dx)
+                    self.gal.xlim1 = xlim[0]-dx
+                    self.gal.xlim2 = xlim[1]-dx
+                if event.ydata != self._event.ydata:
+                    ylim = self.axes.get_ylim()
+                    self.axes.set_ylim(ylim[0]-dy, ylim[1]-dy)
+                    self.gal.ylim1 = ylim[0]-dy
+                    self.gal.ylim2 = ylim[1]-dy
+                self.draw_idle()
+            self._event = event
+    
+    def onWheel(self, event):
+        """Zoom-in and out by rolling the wheel of the mouse."""
+        eb = event.button
+        x0, y0 = event.xdata, event.ydata
+        if eb == 'up':
+            factor = 0.9
+        elif eb == 'down':
+            factor = 1.1
+        else:
+            factor = 1.0
+        if event.key == 'control':
+            xlim = self.axes.get_xlim()
+            wl = (x0 - xlim[0]) * factor
+            wr = (xlim[1] - x0) * factor
+            self.axes.set_xlim(x0 - wl, x0 + wr)
+            self.gal.xlim1 = x0 - wl
+            self.gal.xlim2 = x0 + wr
+        else:
+            ylim = self.axes.get_ylim()
+            hd = (y0 - ylim[0]) * factor
+            hu = (ylim[1] - y0) * factor
+            self.axes.set_ylim(y0 - hd, y0 + hu)
+            self.gal.ylim1 = y0 - hd
+            self.gal.ylim2 = y0 + hu
+        self.draw_idle()
 
     def removeAnnotations(self):
         for annotation in self.annotations:
@@ -464,22 +533,29 @@ class SpectrumCanvas(MplCanvas):
         else:
             return None
 
-    def onrelease(self, event):
-        # print('release event is ', event)
-        if self.dragged is not None and self.pick_pos is not None:
-            x1 = event.xdata
-            x0 = self.pick_pos
-            # w0 = np.array([self.Lines[line][1]  for  line in self.Lines.keys()])
-            # wz = w0 * (1. + self.gal.z)
-            z = (x1 - x0) / x0
-            self.gal.z = (1. + self.gal.z) * (1 + z) - 1.
-            for annotation in self.annotations:
-                annotation.remove()
-            self.zannotation.remove()
-            self.drawSpectrum()
-            self.dragged = None
-        return True
-
+    def onRelease(self, event):
+        if event.button == 1:
+            if self.dragged is not None and self.pick_pos is not None:
+                x1 = event.xdata
+                x0 = self.pick_pos
+                # w0 = np.array([self.Lines[line][1]  for  line in self.Lines.keys()])
+                # wz = w0 * (1. + self.gal.z)
+                z = (x1 - x0) / x0
+                self.gal.z = (1. + self.gal.z) * (1 + z) - 1.
+                for annotation in self.annotations:
+                    annotation.remove()
+                self.zannotation.remove()
+                self.drawSpectrum()
+                self.dragged = None
+                return True
+            
+            # Deselect pan & zoom options on mouse release
+            if self.toolbar._active == "PAN":
+                self.toolbar.pan()
+            if self.toolbar._active == "ZOOM":
+                self.toolbar.zoom()
+        elif event.button == 2:
+            self.onPan(event)
 
 class NavigationToolbar(NavigationToolbar2QT):
     def __init__(self, canvas, parent):
