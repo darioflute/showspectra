@@ -52,8 +52,14 @@ QToolBar::separator{
 background-color: transparent;
 }
 QToolButton:pressed {
-background-color: Lavender;
+background-color: SkyBlue;
 border-radius: 3px;
+}
+QToolButton:hover {
+background-color: LightSkyBlue;
+}
+QToolButton:checked {
+background-color: SkyBlue;
 }
 QToolButton {		
 height:	18px;

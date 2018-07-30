@@ -90,7 +90,7 @@ class SpectrumCanvas(MplCanvas):
 
             # Next/Previous
             self.axprev = self.fig.add_axes([0.44, 0.85, 0.02, 0.04], label='axprev')
-            self.axnext = self.fig.add_axes([0.47, 0.85, 0.02, 0.04], label='axnext')
+            self.axnext = self.fig.add_axes([0.48, 0.85, 0.02, 0.04], label='axnext')
             for a in ['top', 'bottom', 'right', 'left']:
                 self.axprev.spines[a].set_visible(False)
                 self.axnext.spines[a].set_visible(False)
@@ -139,7 +139,7 @@ class SpectrumCanvas(MplCanvas):
         f = self.parent.sky.f
         fgal = self.parent.galaxies[self.parent.ngal].f
         f = (f - np.median(f)) / max(f) * gal.ylim2 + np.median(fgal) - gal.ylim1 / 10.
-        self.skyLine = self.axes.plot(self.parent.sky.w / (1. + gal.z), f, color='r', label='Sky')
+        self.skyLine = self.axes.plot(self.parent.sky.w / (1. + gal.z), f, color='r', label='Sky', alpha=0.5)
         self.skyspec, = self.skyLine
         self.skyspec.set_visible(self.showSky)
         # Spectrum error
@@ -223,7 +223,7 @@ class SpectrumCanvas(MplCanvas):
             self.lines.append(self.templateLayer)
 
         self.labs = [l.get_label() for l in lns]
-        self.leg = self.axes.legend(lns, self.labs, loc='center right', bbox_to_anchor=(1.08, 0.2),
+        self.leg = self.axes.legend(lns, self.labs, loc='center right', bbox_to_anchor=(1.10, 0.2),
                                     fancybox=True, shadow=True, ncol=1)
         # Check alpha of filter
         self.leg.get_texts()[4].set_alpha(alphaf)
@@ -301,7 +301,7 @@ class SpectrumCanvas(MplCanvas):
         alpha = np.sum(fi*ft)/np.sum(ft*ft)
         ft *= alpha
 
-        self.templateLine = self.axes.plot(wt,ft+bgr,color='Cyan',label='Template')
+        self.templateLine = self.axes.plot(wt,ft+bgr,color='Cyan',label='Template', alpha=0.4)
         self.templateLayer, = self.templateLine
         self.templateLayer.set_visible(self.showTemplate)
 

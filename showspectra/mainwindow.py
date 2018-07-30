@@ -132,7 +132,7 @@ class GUI (QMainWindow):
 
         # Actions
         self.maskAction = self.createAction(self.path0 + '/icons/mask.png',
-                                            'Mask spectrum', 'Ctrl+m', self.maskSpectrum)
+                                            'Mask spectrum', 'Ctrl+m', self.maskSpectrum,checkable=True)
         self.xcorrAction = self.createAction(self.path0 + '/icons/galaxy.png',
                                             'Cross-correlate with templates', 'Ctrl+x', self.xcorrSpectrum)
         self.openAction = self.createAction(self.path0 + '/icons/open.png',
@@ -151,8 +151,8 @@ class GUI (QMainWindow):
         self.tb.addAction(self.openAction)
         self.tb.addAction(self.quitAction)
 
-    def createAction(self, icon, text, shortcut, action):
-        act = QAction(QIcon(icon), text, self)
+    def createAction(self, icon, text, shortcut, action, checkable=False):
+        act = QAction(QIcon(icon), text, self,checkable=checkable)
         act.setShortcut(shortcut)
         act.triggered.connect(action)
         return act

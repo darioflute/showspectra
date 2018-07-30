@@ -70,6 +70,7 @@ class selectFiles(QDialog):
         super().__init__(parent)
         self.flux = self.err = self.sky = None
         self.setupUI()
+        # self.selectFlux()
 
     def setupUI(self):
         hgroup = QGroupBox()
