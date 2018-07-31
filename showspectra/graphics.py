@@ -118,7 +118,7 @@ class SpectrumCanvas(MplCanvas):
             # Activate mouse wheel for zooming
             self.idw = self.mpl_connect('scroll_event', self.onWheel)
             # Activate pressing button event (for panning with middle button)
-            self.mpl_connect('button_press_event', self.onPan)
+            self.mpl_connect('button_press_event', self.onPress)
             self.mpl_connect('button_release_event', self.onRelease)
             self.mpl_connect('motion_notify_event', self.onPan)
             self._event = None  # Event for panning
@@ -322,6 +322,7 @@ class SpectrumCanvas(MplCanvas):
         self.gal.z = self.parent.zxcorr[newRow]
         self.gal.dz = self.parent.szxcorr[newRow]
         self.gal.zTemplate = self.parent.txcorr[newRow]
+        self.gal.limits()
         self.drawSpectrum()
 
 
@@ -364,13 +365,14 @@ class SpectrumCanvas(MplCanvas):
     def onSelect(self, xmin, xmax):
         """
             Define a masked region.
-            If SHIFT or CTRL (Command on Apple) is pressed, previous masks are deleted.
+            If CTRL is pressed, previous masks are deleted.
         """
         # Add region to clip mask
         indmin, indmax = np.searchsorted(self.wave, (xmin, xmax))
         # Check if SHIFT is on
-        modifiers = QApplication.keyboardModifiers()
-        if (modifiers == Qt.ShiftModifier) or (modifiers == Qt.ControlModifier):
+        #  modifiers = QApplication.keyboardModifiers()
+        #  if (modifiers == Qt.ShiftModifier) or (modifiers == Qt.ControlModifier):
+        if self.key == 'control':
             # Unmask
             self.gal.c[indmin:indmax] = 1
         else:
@@ -378,6 +380,7 @@ class SpectrumCanvas(MplCanvas):
             self.gal.c[indmin:indmax] = 0
             # Plot rectangle
             # self.axes.axvspan(xmin, xmax, facecolor='LightYellow', alpha=1, linewidth=0, zorder=1)
+        self.gal.limits()
         self.drawSpectrum()
 
     def onpick(self, event):
@@ -535,6 +538,12 @@ class SpectrumCanvas(MplCanvas):
             return nnew
         else:
             return None
+        
+    def onPress(self, event):
+        if event.button == 1:
+            self.key = event.key
+        elif event.button == 2:
+            self.onPan(event)
 
     def onRelease(self, event):
         if event.button == 1:
@@ -550,8 +559,7 @@ class SpectrumCanvas(MplCanvas):
                 self.zannotation.remove()
                 self.drawSpectrum()
                 self.dragged = None
-                return True
-            
+                return True            
             # Deselect pan & zoom options on mouse release
             if self.toolbar._active == "PAN":
                 self.toolbar.pan()
