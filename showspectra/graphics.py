@@ -122,11 +122,13 @@ class SpectrumCanvas(MplCanvas):
             self.mpl_connect('button_release_event', self.onRelease)
             self.mpl_connect('motion_notify_event', self.onPan)
             self._event = None  # Event for panning
-
             # Start the span selector
             self.span = SpanSelector(self.axes, self.onSelect, 'horizontal', useblit=True,
                                      rectprops=dict(alpha=0.5, facecolor='LightSalmon'),button=1)
             self.span.active = False
+            # Callback to update the limit changes
+            self.axes.callbacks.connect('xlim_changed', self.onXlimsChange)
+            self.axes.callbacks.connect('ylim_changed', self.onYlimsChange)
 
 
     def drawSpectrum(self):
@@ -136,28 +138,27 @@ class SpectrumCanvas(MplCanvas):
         self.axes.set_ylabel('Flux [$W\,m^{-2}\,Hz^{-1}$]')
         self.ngal = self.parent.ngal
         self.gal = self.parent.galaxies[self.ngal]
-        gal = self.parent.galaxies[self.ngal]
-        self.wave = gal.wc / (1. + gal.z)
+        self.wave = self.gal.wc / (1. + self.gal.z)
         if self.filter:
-            flux = savgol_filter(gal.fc, 7, 3)
+            flux = savgol_filter(self.gal.fc, 7, 3)
         else:
-            flux = gal.fc
+            flux = self.gal.fc
         self.fluxLine = self.axes.plot(self.wave[self.gal.c], flux[self.gal.c], label='Flux')
         self.galspec, = self.fluxLine
-        self.axes.set_xlim([gal.xlim1, gal.xlim2])
-        self.axes.set_ylim([gal.ylim1, gal.ylim2])
+        self.axes.set_xlim([self.gal.xlim1, self.gal.xlim2])
+        self.axes.set_ylim([self.gal.ylim1, self.gal.ylim2])
         # dx = gal.xlim2 - gal.xlim1
-        dy = gal.ylim2 - gal.ylim1
+        dy = self.gal.ylim2 - self.gal.ylim1
         self.galspec.set_visible(self.showFlux)
         # Sky spectrum
         f = self.parent.sky.f
         fgal = self.parent.galaxies[self.parent.ngal].f
-        f = (f - np.median(f)) / max(f) * gal.ylim2 + np.median(fgal) - gal.ylim1 / 10.
-        self.skyLine = self.axes.plot(self.parent.sky.w / (1. + gal.z), f, color='r', label='Sky', alpha=0.5)
+        f = (f - np.median(f)) / max(f) * self.gal.ylim2 + np.median(fgal) - self.gal.ylim1 / 10.
+        self.skyLine = self.axes.plot(self.parent.sky.w / (1. + self.gal.z), f, color='r', label='Sky', alpha=0.5)
         self.skyspec, = self.skyLine
         self.skyspec.set_visible(self.showSky)
         # Spectrum error
-        self.errLine = self.axes.plot(self.wave, gal.ec, color='g', label='Error')
+        self.errLine = self.axes.plot(self.wave, self.gal.ec, color='g', label='Error')
         self.errspec, = self.errLine
         self.errspec.set_visible(self.showErr)
         # Fake line to have the lines in the legend
@@ -195,11 +196,13 @@ class SpectrumCanvas(MplCanvas):
         font = FontProperties(family='DejaVu Sans', size=12)
         xlim0, xlim1 = self.axes.get_xlim()
         ylim0, ylim1 = self.axes.get_ylim()
+        wmin = np.nanmin(self.wave)
+        wmax = np.nanmax(self.wave)
         dy = ylim1 - ylim0
         for line in self.Lines.keys():
             nline = self.Lines[line][0]
             wline = self.Lines[line][1]
-            if (wline > xlim0 and wline < xlim1):
+            if (wline > wmin and wline < wmax):
                 wdiff = abs(self.wave - wline)
                 imin = np.argmin(wdiff)
                 y = flux[imin]
@@ -224,7 +227,6 @@ class SpectrumCanvas(MplCanvas):
                                                 fontproperties=font)
                 annotation.draggable()
                 self.annotations.append(annotation)
-        
         # Prepare legend
         lns = self.fluxLine + self.errLine + self.skyLine + self.linesLine + \
             self.filterLine + self.maskLine
@@ -265,21 +267,21 @@ class SpectrumCanvas(MplCanvas):
                 iend = np.where(dc == 1)
                 istart = np.ravel(istart)
                 iend = np.ravel(iend)
-                print('istart ',istart)
-                print('iend ', iend)
+                # print('istart ',istart)
+                # print('iend ', iend)
                 # Mark rectangles
-                #istart = np.array(istart)
-                #iend = np.array(iend)
+                # istart = np.array(istart)
+                # iend = np.array(iend)
                 self.axrectangles = []
                 for ist, ien in zip(istart, iend):
-                    print(ist,ien)
+                    #  print(ist,ien)
                     axrectangle = self.axes.axvspan(self.wave[ist], self.wave[ien],
                                                     facecolor='LightYellow',
                                                     alpha=1, linewidth=0, zorder=1)
                     self.axrectangles.append(axrectangle)
             else:
                 self.axrectangles = None
-                print('No masked elements')
+                #  print('No masked elements')
 
         # Connect canvas to events
         self.fig.canvas.mpl_connect('pick_event', self.onpick)
@@ -379,7 +381,8 @@ class SpectrumCanvas(MplCanvas):
         self.drawSpectrum()
 
     def onpick(self, event):
-        if event.mouseevent.button != 1: return 
+        if event.mouseevent.button != 1: return  # accept only the 1st mouse button
+        if self.span.active: return  # Do not pick if the mask selection is active
         if isinstance(event.artist, Line2D):
             legline = event.artist
             label = legline.get_label()
@@ -476,13 +479,13 @@ class SpectrumCanvas(MplCanvas):
                 if event.x != self._event.x:
                     xlim = self.axes.get_xlim()
                     self.axes.set_xlim(xlim[0]-dx, xlim[1]-dx)
-                    self.gal.xlim1 = xlim[0]-dx
-                    self.gal.xlim2 = xlim[1]-dx
+                    #self.gal.xlim1 = xlim[0]-dx
+                    #self.gal.xlim2 = xlim[1]-dx
                 if event.ydata != self._event.ydata:
                     ylim = self.axes.get_ylim()
                     self.axes.set_ylim(ylim[0]-dy, ylim[1]-dy)
-                    self.gal.ylim1 = ylim[0]-dy
-                    self.gal.ylim2 = ylim[1]-dy
+                    #self.gal.ylim1 = ylim[0]-dy
+                    #self.gal.ylim2 = ylim[1]-dy
                 self.draw_idle()
             self._event = event
     
@@ -497,19 +500,19 @@ class SpectrumCanvas(MplCanvas):
         else:
             factor = 1.0
         if event.key == 'control':
-            xlim = self.axes.get_xlim()
-            wl = (x0 - xlim[0]) * factor
-            wr = (xlim[1] - x0) * factor
-            self.axes.set_xlim(x0 - wl, x0 + wr)
-            self.gal.xlim1 = x0 - wl
-            self.gal.xlim2 = x0 + wr
-        else:
             ylim = self.axes.get_ylim()
             hd = (y0 - ylim[0]) * factor
             hu = (ylim[1] - y0) * factor
             self.axes.set_ylim(y0 - hd, y0 + hu)
-            self.gal.ylim1 = y0 - hd
-            self.gal.ylim2 = y0 + hu
+            #self.gal.ylim1 = y0 - hd
+            #self.gal.ylim2 = y0 + hu
+        else:
+            xlim = self.axes.get_xlim()
+            wl = (x0 - xlim[0]) * factor
+            wr = (xlim[1] - x0) * factor
+            self.axes.set_xlim(x0 - wl, x0 + wr)
+            #self.gal.xlim1 = x0 - wl
+            #self.gal.xlim2 = x0 + wr
         self.draw_idle()
 
     def removeAnnotations(self):
@@ -556,6 +559,13 @@ class SpectrumCanvas(MplCanvas):
                 self.toolbar.zoom()
         elif event.button == 2:
             self.onPan(event)
+
+    def onXlimsChange(self, event):
+        self.gal.xlim1, self.gal.xlim2 = self.axes.get_xlim()
+    
+    def onYlimsChange(self, event):
+        self.gal.ylim1, self.gal.ylim2 = self.axes.get_ylim()
+
 
 class NavigationToolbar(NavigationToolbar2QT):
     def __init__(self, canvas, parent):

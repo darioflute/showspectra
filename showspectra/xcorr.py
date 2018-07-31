@@ -157,7 +157,7 @@ def cross_correlation(self):
 
     # Print the top five x-correlations
     idx = np.argsort(snr)
-    idxs = idx[-5:]
+    idxs = idx[-7:]
     idxs = idxs[::-1]  # reverse list
     self.zxcorr = z[idxs]
     self.szxcorr = sz[idxs]

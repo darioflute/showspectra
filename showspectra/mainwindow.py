@@ -88,7 +88,14 @@ class GUI (QMainWindow):
         # File import/save
         bar = self.menuBar()
         file = bar.addMenu("File")
+        file.addAction(QAction("Select telescope", self, shortcut='Ctrl+T', triggered=self.selTelescope))
+        file.addAction(QAction("Open fits files", self, shortcut='Ctrl+o', triggered=self.fileOpen))
         file.addAction(QAction("Quit", self, shortcut='Ctrl+q', triggered=self.fileQuit))
+        
+        # Tools 
+        tools = bar.addMenu("Tools")
+        tools.addAction(QAction("Mask/unmask", self, shortcut='Ctrl+m', triggered=self.maskSpectrum))
+        tools.addAction(QAction("Cross-correlate", self, shortcut='Ctrl+x', triggered=self.xcorrSpectrum))
 
         # Help
         # help = bar.addMenu("Help")
@@ -132,9 +139,13 @@ class GUI (QMainWindow):
 
         # Actions
         self.maskAction = self.createAction(self.path0 + '/icons/mask.png',
-                                            'Mask spectrum', 'Ctrl+m', self.maskSpectrum,checkable=True)
+                                            'Mask/unmask spectrum', 'Ctrl+m', self.maskSpectrum,checkable=True)
         self.xcorrAction = self.createAction(self.path0 + '/icons/galaxy.png',
                                             'Cross-correlate with templates', 'Ctrl+x', self.xcorrSpectrum)
+        self.guessAction = self.createAction(self.path0 + '/icons/gauss.png',
+                                            'Guess continuum and lines', 'Ctrl+g', self.guessSpectrum)
+        self.fitAction = self.createAction(self.path0 + '/icons/compute.png',
+                                            'Fit continuum and lines', 'Ctrl+f', self.fitSpectrum)
         self.openAction = self.createAction(self.path0 + '/icons/open.png',
                                             'Open files', 'Ctrl+o', self.fileOpen)
         self.teleAction = self.createAction(self.path0 + '/icons/telescope.png',
@@ -147,6 +158,8 @@ class GUI (QMainWindow):
         # Add actions
         self.tb.addAction(self.maskAction)
         self.tb.addAction(self.xcorrAction)
+        self.tb.addAction(self.guessAction)
+        self.tb.addAction(self.fitAction)
         self.tb.addAction(self.teleAction)
         self.tb.addAction(self.openAction)
         self.tb.addAction(self.quitAction)
@@ -177,7 +190,13 @@ class GUI (QMainWindow):
         self.sp.showTemplate = True
         cross_correlation(self)
 
-        
+    def guessSpectrum(self):
+        """Create a guess of continuum and lines."""
+        print('Guess continuum and lines')
+
+    def fitSpectrum(self):
+        """Fit defined guess."""
+        print('Fit the defined guess')
 
     def fileOpen(self):
         """Opening spectral files."""

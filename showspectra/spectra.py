@@ -19,10 +19,8 @@ class Galaxy(object):
         self.zTemplate = None  # template with best cross-correlation
         self.spectype = None  # type (?,star,galaxy,broadAGN,sky)
         self.quality = None  # quality ( OK,guess,?)
-        self.xlim1 = min(wave)
-        self.xlim2 = max(wave)
-        self.ylim1 = min(flux)
-        self.ylim2 = max(flux)
+        # Set limits
+        self.limits()
         self.lines = {}
         # Identifications
         self.ra = None
@@ -34,12 +32,13 @@ class Galaxy(object):
     def limits(self):
         w = self.wc / (1 + self.z)
         f = self.fc
-        minf = min(f)
-        maxf = max(f)
+        minf = np.nanmin(f[self.c])
+        maxf = np.nanmax(f[self.c])
         df = maxf - minf
         mf = 0.5 * (maxf + minf)
-        self.xlim1 = min(w)
-        self.xlim2 = max(w)
+        dw = np.nanmax(w)-np.nanmin(w)
+        self.xlim1 = np.nanmin(w)-dw/30.
+        self.xlim2 = np.nanmax(w)+dw/30.
         self.ylim1 = mf - df * 0.55
         self.ylim2 = mf + df * 0.55
 
