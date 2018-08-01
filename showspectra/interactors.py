@@ -233,7 +233,7 @@ class SegmentsInteractor(QObject):
         indseq, = np.nonzero(d == d.min())
         ind = indseq[0]
 
-        print('distance is ',d[ind])
+        # print('distance is ',d[ind])
         if d[ind] >= self.epsilon:
             ind = None
         return ind
@@ -310,12 +310,13 @@ class SegmentsInteractor(QObject):
             self.xy[i] = (x[i],y[i])
         # Update segments and markers
         self.updateLinesMarkers()
-        self.canvas.restore_region(self.background)
-        self.ax.draw_artist(self.line1)
-        self.ax.draw_artist(self.line2)
-        self.ax.draw_artist(self.line)
-        self.canvas.update()
-        self.canvas.flush_events()
+        #self.canvas.restore_region(self.background)
+        #self.ax.draw_artist(self.line1)
+        #self.ax.draw_artist(self.line2)
+        #self.ax.draw_artist(self.line)
+        #self.canvas.update()
+        #self.canvas.flush_events()
+        self.canvas.draw_idle()
         # Notify callback
         self.modSignal.emit('continuum guess modified')
 
@@ -323,6 +324,8 @@ class SegmentsInteractor(QObject):
         self.line1.set_data(zip(*self.xy[:2]))
         self.line2.set_data(zip(*self.xy[2:]))
         self.line.set_data(zip(*self.xy))
+        # Update parameters of the continuum
+        self.computeSlope()
 
 
 class LineInteractor(QObject):
@@ -420,7 +423,7 @@ class LineInteractor(QObject):
         d = np.hypot(x - event.x, y - event.y)
         indseq, = np.nonzero(d == d.min())
         ind = indseq[0]
-        print('distance is ',d[ind])
+        # print('distance is ',d[ind])
         if d[ind] >= self.epsilon:
             ind = None
         return ind
@@ -469,56 +472,66 @@ class LineInteractor(QObject):
             return
         x_, y_ = event.xdata, event.ydata
         # Rebuild line collection
-        x,y = zip(*self.xy)
+        x, y = zip(*self.xy)
         x = np.asarray(x)
         y = np.asarray(y)
-        # Update markers
-        y[self._ind] = y_
+        # Update markers and Gaussian parameters
         if self._ind == 0:
             if x_ > x[1]:
                 pass
             else:
-                x[self._ind] = x_
-                x[2] = x[1] + (x[1]-x_)  # Symmetrical change
+                #x[self._ind] = x_
+                #x[2] = x[1] + (x[1]-x_)  # Symmetrical change
+                #dx = x[1] - x_
+                self.fwhm = 2 * (x[1] - x_)
         elif self._ind == 1:
             dx = x_ - x[1]
-            x[0] += dx
-            x[1] += dx
-            x[2] += dx
-            dy = y_-y[1]
-            if dy < -self.A:  # Check for negative case (abs line)
+            #x[0] += dx
+            #x[1] += dx
+            #x[2] += dx
+            self.x0 += dx
+            dy = y_ - y[1]
+            if (self.A > 0) & (dy < -self.A):  # Emission line 
+                pass
+            elif (self.A < 0) & (dy > -self.A):  # Absorption line
                 pass
             else:
-                y[1] += dy/2.
-                y[0] += dy
-                y[2] += dy/2.
+                #y[1] += dy/2.
+                #y[0] += dy
+                #y[2] += dy/2.
+                self.A += dy
         elif self._ind == 2:
             if x_ < x[1]:
                 pass
             else:
-                x[2] = x_
-                x[0] = x[1] - (x[2]-x[1])  # Symmetrical change
-        self.xy = [(i,j) for (i,j) in zip(x,y)]
-        # Update segments and markers
-        self.updateLinesMarkers()
-        self.canvas.restore_region(self.background)
-        self.ax.draw_artist(self.gauss)
-        self.ax.draw_artist(self.line)
-        self.canvas.update()
-        self.canvas.flush_events()
+                #x[2] = x_
+                #x[0] = x[1] - (x[2]-x[1])  # Symmetrical change
+                self.fwhm = 2 * (x_ - x[1])
+        # self.xy = [(i,j) for (i,j) in zip(x,y)]
+        # self.fwhm = x[2] - x[0]
+        self.updateCurves()
+        # Update markers and Gaussian
+        # self.line.set_data(zip(*self.xy))
+        # self.computeGaussian()
+        # self.gauss.xy = self.verts
+        #self.canvas.restore_region(self.background)
+        #self.ax.draw_artist(self.gauss)
+        #self.ax.draw_artist(self.line)
+        #self.canvas.update()
+        #self.canvas.flush_events()
+        # self.canvas.draw_idle()
         # Notify callback
         self.modSignal.emit('line guess modified')
-
-    def updateLinesMarkers(self):
+        
+    def updateCurves(self):
+        self.computeGaussian()  
+        self.computeMarkers()
+        self.ax.draw_artist(self.gauss)
         self.line.set_data(zip(*self.xy))
-        # Compute parameters of Gaussian
-        x, y = zip(*self.xy)
-        x = np.asarray(x)
-        y = np.asarray(y)
-        self.x0 = x[1]
-        self.A = y[1] - (self.c0 + self.x0 * self.cs)
-        self.fwhm = x[2]-x[0]
-        self.computeGaussian()
-        # x, y = zip(*self.verts)
-        # self.gauss.xy = x, y
+        self.canvas.restore_region(self.background)
+        self.ax.draw_artist(self.line)
         self.gauss.xy = self.verts
+        self.ax.draw_artist(self.gauss)
+        self.canvas.update()
+        self.canvas.flush_events()
+        #self.canvas.draw_idle()

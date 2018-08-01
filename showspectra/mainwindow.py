@@ -238,9 +238,23 @@ class GUI (QMainWindow):
         # This step will have a list of lines 
         self.sp.line = LI
 
-    def onModifiedGuess(self):
+    def onModifiedGuess(self, event):
         """Reacts to modifications of the continuum guess."""
-        pass  # It will be used to react to modifications of the line guesses
+        if event == 'continuum guess modified':
+            if self.sp.line is not None:
+                # Change continuum data in the line
+                oldc = self.sp.line.c0 + self.sp.line.cs * self.sp.line.x0
+                self.sp.line.c0 = self.sp.guess.intcpt
+                self.sp.line.cs = self.sp.guess.slope
+                newc = self.sp.line.c0 + self.sp.line.cs * self.sp.line.x0
+                if self.sp.line.A >= 0:
+                    self.sp.line.A += oldc - newc
+                else:
+                    self.sp.line.A -= oldc - newc
+                # Update amplitude
+                self.sp.line.updateCurves()
+        else:
+            pass
 
     def onRemoveContinuum(self, event):
         if event == 'segments deleted':
