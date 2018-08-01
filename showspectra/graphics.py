@@ -140,10 +140,10 @@ class SpectrumCanvas(MplCanvas):
         self.gal = self.parent.galaxies[self.ngal]
         self.wave = self.gal.wc / (1. + self.gal.z)
         if self.filter:
-            flux = savgol_filter(self.gal.fc, 7, 3)
+            self.flux = savgol_filter(self.gal.fc, 7, 3)
         else:
-            flux = self.gal.fc
-        self.fluxLine = self.axes.plot(self.wave[self.gal.c], flux[self.gal.c], label='Flux')
+            self.flux = self.gal.fc
+        self.fluxLine = self.axes.plot(self.wave[self.gal.c], self.flux[self.gal.c], label='Flux')
         self.galspec, = self.fluxLine
         self.axes.set_xlim([self.gal.xlim1, self.gal.xlim2])
         self.axes.set_ylim([self.gal.ylim1, self.gal.ylim2])
@@ -205,7 +205,7 @@ class SpectrumCanvas(MplCanvas):
             if (wline > wmin and wline < wmax):
                 wdiff = abs(self.wave - wline)
                 imin = np.argmin(wdiff)
-                y = flux[imin]
+                y = self.flux[imin]
                 y1 = y
                 if nline[0:2] == 'A:':
                     y2 = ylim0 + 0.05 * dy
@@ -372,7 +372,7 @@ class SpectrumCanvas(MplCanvas):
         # Check if SHIFT is on
         #  modifiers = QApplication.keyboardModifiers()
         #  if (modifiers == Qt.ShiftModifier) or (modifiers == Qt.ControlModifier):
-        if self.key == 'control':
+        if self.key in ['control', 'cmd','shift', 'alt']:
             # Unmask
             self.gal.c[indmin:indmax] = 1
         else:
@@ -380,7 +380,9 @@ class SpectrumCanvas(MplCanvas):
             self.gal.c[indmin:indmax] = 0
             # Plot rectangle
             # self.axes.axvspan(xmin, xmax, facecolor='LightYellow', alpha=1, linewidth=0, zorder=1)
-        self.gal.limits()
+        xlim = self.axes.get_xlim()  # Conserve new x limits
+        self.gal.limits()  # Update y limits
+        self.gal.xlim1, self.gal.xlim2 = xlim
         self.drawSpectrum()
 
     def onpick(self, event):
@@ -502,7 +504,7 @@ class SpectrumCanvas(MplCanvas):
             factor = 1.1
         else:
             factor = 1.0
-        if event.key == 'control':
+        if event.key in ['control', 'cmd','shift', 'alt']:
             ylim = self.axes.get_ylim()
             hd = (y0 - ylim[0]) * factor
             hu = (ylim[1] - y0) * factor

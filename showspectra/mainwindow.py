@@ -2,16 +2,18 @@
 
 import sys
 import os
+import numpy as np
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QHBoxLayout,
                              QVBoxLayout, QStatusBar, QToolBar, QAction, QDialog)
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt
 
 from showspectra.graphics import SpectrumCanvas, NavigationToolbar
-from showspectra.dialogs import selectTelescope, selectFiles
+from showspectra.dialogs import selectTelescope, selectFiles, guessParams
 from showspectra.inout import recoverAnalysis
 from showspectra.templates import readTemplates
 from showspectra.xcorr import cross_correlation
+from showspectra.interactors import SegmentsSelector, SegmentsInteractor, LineInteractor
 
 class GUI (QMainWindow):
 
@@ -192,7 +194,63 @@ class GUI (QMainWindow):
 
     def guessSpectrum(self):
         """Create a guess of continuum and lines."""
-        print('Guess continuum and lines')
+        self.GP = guessParams()
+        if self.GP.exec_() == QDialog.Accepted:
+            cont, em, ab = self.GP.save()
+            if cont == 'Constant':
+                self.zeroDeg = True
+            else:
+                self.zeroDeg = False
+            self.nem = em
+            self.nab = ab
+            try:
+                self.onRemoveContinuum('remove continuum')
+            except BaseException:
+                pass
+            self.CS = SegmentsSelector(self.sp.axes,self.sp.fig, self.onContinuumSelect,zD=self.zeroDeg)
+        else:
+            return        
+        
+    def onContinuumSelect(self, verts):
+        # Order the x coordinates of the verts
+        x, y = zip(*verts)
+        x = np.array(x); y = np.array(y)
+        # Order increasing if wavelength, decreasing if frequency
+        idx = np.argsort(x)
+        x = x[idx]
+        y = y[idx]
+        verts = [(i,j) for (i,j) in zip(x,y)]
+
+        SI = SegmentsInteractor(self.sp.axes, verts, self.zeroDeg)
+        SI.modSignal.connect(self.onModifiedGuess)
+        SI.mySignal.connect(self.onRemoveContinuum)
+        self.sp.guess = SI
+        # Once the continuum is selected draw guesses for the lines required
+        # Check with one component only
+        x0 = (x[1] + x[2]) * 0.5
+        fwhm = (x[2] - x[1]) / 2.
+        # Find the max of the spectrum in the interval
+        idx = (self.sp.wave > x[1]) & (self.sp.wave < x[2])
+        A = np.nanmax(self.sp.flux[idx]) - self.sp.guess.intcpt - self.sp.guess.slope * x0
+        LI = LineInteractor(self.sp.axes, self.sp.guess.intcpt, self.sp.guess.slope, x0, A, fwhm)
+        LI.modSignal.connect(self.onModifiedGuess)
+        LI.mySignal.connect(self.onRemoveContinuum)
+        # This step will have a list of lines 
+        self.sp.line = LI
+
+    def onModifiedGuess(self):
+        """Reacts to modifications of the continuum guess."""
+        pass  # It will be used to react to modifications of the line guesses
+
+    def onRemoveContinuum(self, event):
+        if event == 'segments deleted':
+            self.sp.guess.disconnect()  
+            self.sp.guess = None
+            self.sp.fig.canvas.draw_idle()
+        elif event == 'line deleted':
+            self.sp.line.disconnect()
+            self.sp.line = None
+            self.sp.fig.canvas.draw_idle()
 
     def fitSpectrum(self):
         """Fit defined guess."""
