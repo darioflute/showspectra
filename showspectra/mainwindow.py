@@ -204,7 +204,8 @@ class GUI (QMainWindow):
             self.nem = em
             self.nab = ab
             try:
-                self.onRemoveContinuum('remove continuum')
+                self.onRemoveContinuum('segments deleted')
+                self.onRemoveContinuum('line deleted')
             except BaseException:
                 pass
             self.CS = SegmentsSelector(self.sp.axes,self.sp.fig, self.onContinuumSelect,zD=self.zeroDeg)
@@ -247,11 +248,12 @@ class GUI (QMainWindow):
                 self.sp.line.c0 = self.sp.guess.intcpt
                 self.sp.line.cs = self.sp.guess.slope
                 newc = self.sp.line.c0 + self.sp.line.cs * self.sp.line.x0
-                if self.sp.line.A >= 0:
-                    self.sp.line.A += oldc - newc
-                else:
-                    self.sp.line.A -= oldc - newc
-                # Update amplitude
+                if np.abs(oldc - newc) > 0.:
+                    if self.sp.line.A >= 0:
+                        self.sp.line.A += oldc - newc
+                    else:
+                        self.sp.line.A -= oldc - newc
+                self.sp.line.grab_background()
                 self.sp.line.updateCurves()
         else:
             pass

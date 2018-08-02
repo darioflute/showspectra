@@ -1,7 +1,7 @@
 import numpy as np
 from PyQt5.QtCore import pyqtSignal, QObject
 from matplotlib.lines import Line2D
-from matplotlib.artist import Artist
+# from matplotlib.artist import Artist
 from matplotlib.patches import Polygon
 
 
@@ -168,7 +168,6 @@ class SegmentsInteractor(QObject):
         self.connect()
 
     def computeSlope(self):
-
         xg,yg = zip(*self.xy)
         xg = np.array(xg); yg = np.array(yg)
         if self.zeroDeg:
@@ -186,7 +185,7 @@ class SegmentsInteractor(QObject):
         self.cid_motion = self.canvas.mpl_connect('motion_notify_event', 
                                                   self.motion_notify_callback)
         self.cid_key = self.canvas.mpl_connect('key_press_event', self.key_press_callback)
-        self.canvas.draw_idle()
+        #self.canvas.draw_idle()
 
     def disconnect(self):
         self.canvas.mpl_disconnect(self.cid_draw)
@@ -214,17 +213,20 @@ class SegmentsInteractor(QObject):
         self.ax.draw_artist(self.line1)
         self.ax.draw_artist(self.line2)
         self.ax.draw_artist(self.line)
+        self.canvas.update()
+        self.canvas.flush_events()
+
 
     def si_changed(self, line1):
         'this method is called whenever the line1 object is called'
         # only copy the artist props to the line (except visibility)
         vis = self.line.get_visible()
-        Artist.update_from(self.line, line1)
+        # Artist.update_from(self.line, line1)
+        self.line.update_from(line1)
         self.line.set_visible(vis)  
 
     def get_ind_under_point(self, event):
         'get the index of the point if within epsilon tolerance'
-
         # Distance is computed in pixels on the screen
         xy = self.ax.transData.transform(self.xy)
         x, y = zip(*xy)
@@ -232,8 +234,6 @@ class SegmentsInteractor(QObject):
         d = np.hypot(x - event.x, y - event.y)
         indseq, = np.nonzero(d == d.min())
         ind = indseq[0]
-
-        # print('distance is ',d[ind])
         if d[ind] >= self.epsilon:
             ind = None
         return ind
@@ -242,7 +242,6 @@ class SegmentsInteractor(QObject):
         'whenever a key is pressed'
         if not event.inaxes:
             return
-
         if event.key == 't':
             self.showverts = not self.showverts
             self.line.set_visible(self.showverts)
@@ -269,7 +268,7 @@ class SegmentsInteractor(QObject):
         if event.button != 1:
             return
         self._ind = None
-
+        # self.canvas.draw_idle()
 
     def motion_notify_callback(self, event):
         'on mouse movement'
@@ -310,13 +309,13 @@ class SegmentsInteractor(QObject):
             self.xy[i] = (x[i],y[i])
         # Update segments and markers
         self.updateLinesMarkers()
-        #self.canvas.restore_region(self.background)
-        #self.ax.draw_artist(self.line1)
-        #self.ax.draw_artist(self.line2)
-        #self.ax.draw_artist(self.line)
-        #self.canvas.update()
-        #self.canvas.flush_events()
-        self.canvas.draw_idle()
+        self.canvas.restore_region(self.background)
+        self.ax.draw_artist(self.line1)
+        self.ax.draw_artist(self.line2)
+        self.ax.draw_artist(self.line)
+        self.canvas.update()
+        self.canvas.flush_events()
+        # self.canvas.draw_idle()
         # Notify callback
         self.modSignal.emit('continuum guess modified')
 
@@ -352,13 +351,13 @@ class LineInteractor(QObject):
         self.fwhm = fwhm
         self.computeMarkers()
         self.computeGaussian()
-        self.gauss = Polygon(list(self.verts), animated=True, fill=False, closed=False, color=color)
+        self.gauss = Polygon(self.verts, animated=True, fill=False, closed=False, color=color)
         self.ax.add_patch(self.gauss)
         x, y = zip(*self.xy)
         self.line = Line2D(x, y, marker='o', linestyle=None, linewidth=0., markerfacecolor=color, animated=True)                
         self.ax.add_line(self.line)
         # Callback for changes
-        self.cid = self.gauss.add_callback(self.si_changed)
+        self.cid = self.gauss.add_callback(self.gauss_changed)
         self._ind = None  # the active vert
         self.connect()
 
@@ -384,7 +383,7 @@ class LineInteractor(QObject):
         self.cid_release = self.canvas.mpl_connect('button_release_event', self.button_release_callback)
         self.cid_motion = self.canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
         self.cid_key = self.canvas.mpl_connect('key_press_event', self.key_press_callback)
-        self.canvas.draw_idle()
+        #self.canvas.draw_idle()
 
     def disconnect(self):
         self.canvas.mpl_disconnect(self.cid_draw)
@@ -406,12 +405,20 @@ class LineInteractor(QObject):
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         self.ax.draw_artist(self.gauss)
         self.ax.draw_artist(self.line)
+        #self.canvas.draw_idle()
+        self.canvas.update()
+        self.canvas.flush_events()
+        
+    def grab_background(self):
+        self.background = self.canvas.copy_from_bbox(self.ax.bbox)
 
-    def si_changed(self, artist):
+    def gauss_changed(self, gauss):
         'this method is called whenever the artist object is called'
         # only copy the artist props to the line (except visibility)
+        # Copy all styling from one artist to the first one
         vis = self.line.get_visible()
-        Artist.update_from(self.line, artist)
+        # Artist.update_from(self.line, gauss)
+        self.line.update_from(gauss)
         self.line.set_visible(vis)  
 
     def get_ind_under_point(self, event):
@@ -423,7 +430,6 @@ class LineInteractor(QObject):
         d = np.hypot(x - event.x, y - event.y)
         indseq, = np.nonzero(d == d.min())
         ind = indseq[0]
-        # print('distance is ',d[ind])
         if d[ind] >= self.epsilon:
             ind = None
         return ind
@@ -458,7 +464,8 @@ class LineInteractor(QObject):
         if event.button != 1:
             return
         self._ind = None
-
+        # Redrawing
+        # self.canvas.draw_idle()
 
     def motion_notify_callback(self, event):
         'on mouse movement'
@@ -470,25 +477,18 @@ class LineInteractor(QObject):
             return
         if event.button != 1:
             return
+        # Update markers and Gaussian parameters
         x_, y_ = event.xdata, event.ydata
-        # Rebuild line collection
         x, y = zip(*self.xy)
         x = np.asarray(x)
         y = np.asarray(y)
-        # Update markers and Gaussian parameters
         if self._ind == 0:
             if x_ > x[1]:
                 pass
             else:
-                #x[self._ind] = x_
-                #x[2] = x[1] + (x[1]-x_)  # Symmetrical change
-                #dx = x[1] - x_
                 self.fwhm = 2 * (x[1] - x_)
         elif self._ind == 1:
             dx = x_ - x[1]
-            #x[0] += dx
-            #x[1] += dx
-            #x[2] += dx
             self.x0 += dx
             dy = y_ - y[1]
             if (self.A > 0) & (dy < -self.A):  # Emission line 
@@ -496,41 +496,23 @@ class LineInteractor(QObject):
             elif (self.A < 0) & (dy > -self.A):  # Absorption line
                 pass
             else:
-                #y[1] += dy/2.
-                #y[0] += dy
-                #y[2] += dy/2.
                 self.A += dy
         elif self._ind == 2:
             if x_ < x[1]:
                 pass
             else:
-                #x[2] = x_
-                #x[0] = x[1] - (x[2]-x[1])  # Symmetrical change
                 self.fwhm = 2 * (x_ - x[1])
-        # self.xy = [(i,j) for (i,j) in zip(x,y)]
-        # self.fwhm = x[2] - x[0]
         self.updateCurves()
-        # Update markers and Gaussian
-        # self.line.set_data(zip(*self.xy))
-        # self.computeGaussian()
-        # self.gauss.xy = self.verts
-        #self.canvas.restore_region(self.background)
-        #self.ax.draw_artist(self.gauss)
-        #self.ax.draw_artist(self.line)
-        #self.canvas.update()
-        #self.canvas.flush_events()
-        # self.canvas.draw_idle()
         # Notify callback
         self.modSignal.emit('line guess modified')
         
     def updateCurves(self):
         self.computeGaussian()  
         self.computeMarkers()
-        self.ax.draw_artist(self.gauss)
-        self.line.set_data(zip(*self.xy))
         self.canvas.restore_region(self.background)
-        self.ax.draw_artist(self.line)
+        self.line.set_data(zip(*self.xy))
         self.gauss.xy = self.verts
+        self.ax.draw_artist(self.line)
         self.ax.draw_artist(self.gauss)
         self.canvas.update()
         self.canvas.flush_events()
