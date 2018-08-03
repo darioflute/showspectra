@@ -1,14 +1,14 @@
 import numpy as np
+import sys
 from PyQt5.QtCore import pyqtSignal, QObject
 from matplotlib.lines import Line2D
-# from matplotlib.artist import Artist
 from matplotlib.patches import Polygon
 
 
 class SegmentsSelector(QObject):
     """This class allows one to mark two segments to define the continuum around a line."""
     
-    def __init__(self, ax, fig, callback, color='#7ec0ee', zD = True):
+    def __init__(self, ax, fig, callback, color='#7ec0ee', zD=True):
         super().__init__()
 
         self.x = []
@@ -20,7 +20,6 @@ class SegmentsSelector(QObject):
         self.ax = ax
         self.callback = callback
         self.zeroDeg = zD
-
         self.__ID1 = self.fig.canvas.mpl_connect('motion_notify_event', self.__motion_notify_callback)
         self.__ID2 = self.fig.canvas.mpl_connect('button_press_event', self.__button_press_callback)
         self.__ID3 = self.fig.canvas.mpl_connect('button_release_event', self.__button_release_callback)
@@ -28,10 +27,11 @@ class SegmentsSelector(QObject):
     def __motion_notify_callback(self, event):
         if event.inaxes:
             x, y = event.xdata, event.ydata
-            if (event.button == None or event.button == 1):
-                if self.line1 != None: # Move line around
-                    if self.line2 == None:
-                        if self.zeroDeg: self.y[0]=y
+            if (event.button is None or event.button == 1):
+                if self.line1 is not None: # Move line around
+                    if self.line2 is None:
+                        if self.zeroDeg: 
+                            self.y[0]=y
                         self.line1.set_data([self.x[0], x],
                                             [self.y[0], y])
                     else:
@@ -43,12 +43,11 @@ class SegmentsSelector(QObject):
                                             [self.y[2], y])
                     self.fig.canvas.draw_idle()
 
-
     def __button_release_callback(self, event):
         if event.inaxes:
             x, y = event.xdata, event.ydata
             if event.button == 1:
-                if self.line2 == None:  # Segment 1 completed
+                if self.line2 is None:  # Segment 1 completed
                     self.x.append(x)
                     self.y.append(y)
                     if self.zeroDeg:
@@ -87,39 +86,33 @@ class SegmentsSelector(QObject):
     def __button_press_callback(self, event):
         if event.inaxes:
             x, y = event.xdata, event.ydata
-            ax = event.inaxes
+            # ax = event.inaxes
             if event.button == 1:
-                if self.line2 == None:
-                    if self.line1 == None:  # If you press the left button, single click
-                        self.line1 = Line2D([x, x],
-                                            [y, y],
-                                            marker='o',
-                                            color=self.color)
+                if self.line2 is None:
+                    if self.line1 is None:  # If you press the left button, single click
+                        self.line1 = Line2D([x, x], [y, y], marker='o', color=self.color)
                         self.start_point = [x,y]
                         self.previous_point =  self.start_point
                         self.x=[x]
                         self.y=[y]
-                        self.__ID1 = self.fig.canvas.mpl_connect('motion_notify_event', self.__motion_notify_callback)
-                        ax.add_line(self.line1)
-                        # add a segment
+                        self.__ID1 = self.fig.canvas.mpl_connect('motion_notify_event', 
+                                                                 self.__motion_notify_callback)
+                        self.ax.add_line(self.line1)
                         self.fig.canvas.draw_idle()
                 else:
                     if self.zeroDeg:
                         self.y = [y,y]
                         self.line1.set_data([self.x[0], self.x[1]],
                                             [self.y[0], self.y[1]])
-                    self.line2 = Line2D([x, x],
-                                        [y, y],
-                                        marker='o',
-                                        color=self.color)
+                    self.line2 = Line2D([x, x], [y, y], marker='o', color=self.color)
                     self.start_point = [x,y]
                     self.previous_point =  self.start_point
                     self.x.append(x)
                     self.y.append(y)
-                    self.__ID1 = self.fig.canvas.mpl_connect('motion_notify_event', self.__motion_notify_callback)
-                        
-                    ax.add_line(self.line2)
-                    self.fig.canvas.draw()
+                    self.__ID1 = self.fig.canvas.mpl_connect('motion_notify_event', 
+                                                             self.__motion_notify_callback)
+                    self.ax.add_line(self.line2)
+                    self.fig.canvas.draw_idle()
 
     def remove(self):
         """ Remove lines from plot """
@@ -133,37 +126,36 @@ class SegmentsSelector(QObject):
 class SegmentsInteractor(QObject):
     """
     A segmented continuum interactor.
+    Arguments:
+        ax      axes associated with the interactor
+        verts   vertices of the segments
+        zeroDeg boolean variable: False if slope is not zero
+        epsilon max pixel distance to count as a vertex hit
     """
-    
     showverts = True
-    epsilon = 10  # max pixel distance to count as a vertex hit
     mySignal = pyqtSignal(str)
     modSignal = pyqtSignal(str)
 
-    def __init__(self, ax, verts, zeroDeg=True):
+    def __init__(self, ax, verts, zeroDeg=True, epsilon=10):
         super().__init__()
-
-
+        # To avoid crashing with maximum recursion depth exceeded
+        sys.setrecursionlimit(10000) # 10000 is 10x the default value
+        self.epsilon = epsilon
         self.ax = ax
         self.type = 'Continuum'
-        #        color = 'skyblue'
         color = '#7ec0ee'
-
         self.zeroDeg = zeroDeg
+        self.canvas = ax.figure.canvas
         x, y = zip(*verts)
         self.xy = [(i,j) for (i,j) in zip(x,y)]
         self.computeSlope()
         self.line1 = Line2D(x[:2],y[:2],color=color,linewidth=2, animated = True)
         self.line2 = Line2D(x[2:],y[2:],color=color,linewidth=2, animated = True)
-
-        self.canvas = ax.figure.canvas
         self.line = Line2D(x, y, marker='o', linestyle=None, linewidth=0., 
                            markerfacecolor=color, animated=True)                
         self.ax.add_line(self.line1)
         self.ax.add_line(self.line2)
         self.ax.add_line(self.line)
-
-        self.cid = self.line1.add_callback(self.si_changed)
         self._ind = None  # the active vert
         self.connect()
 
@@ -176,7 +168,6 @@ class SegmentsInteractor(QObject):
             self.slope = (yg[3]-yg[0])/(xg[3]-xg[0])
         self.intcpt = yg[0]-self.slope*xg[0]
 
-
     def connect(self):
         self.cid_draw = self.canvas.mpl_connect('draw_event', self.draw_callback)
         self.cid_press = self.canvas.mpl_connect('button_press_event', self.button_press_callback)
@@ -185,7 +176,7 @@ class SegmentsInteractor(QObject):
         self.cid_motion = self.canvas.mpl_connect('motion_notify_event', 
                                                   self.motion_notify_callback)
         self.cid_key = self.canvas.mpl_connect('key_press_event', self.key_press_callback)
-        #self.canvas.draw_idle()
+        self.canvas.draw_idle()
 
     def disconnect(self):
         self.canvas.mpl_disconnect(self.cid_draw)
@@ -206,24 +197,12 @@ class SegmentsInteractor(QObject):
         except:
             print('no markers')
         self.canvas.draw_idle()
-        # self.aperture = None
         
     def draw_callback(self, event):
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         self.ax.draw_artist(self.line1)
         self.ax.draw_artist(self.line2)
         self.ax.draw_artist(self.line)
-        self.canvas.update()
-        self.canvas.flush_events()
-
-
-    def si_changed(self, line1):
-        'this method is called whenever the line1 object is called'
-        # only copy the artist props to the line (except visibility)
-        vis = self.line.get_visible()
-        # Artist.update_from(self.line, line1)
-        self.line.update_from(line1)
-        self.line.set_visible(vis)  
 
     def get_ind_under_point(self, event):
         'get the index of the point if within epsilon tolerance'
@@ -268,7 +247,6 @@ class SegmentsInteractor(QObject):
         if event.button != 1:
             return
         self._ind = None
-        # self.canvas.draw_idle()
 
     def motion_notify_callback(self, event):
         'on mouse movement'
@@ -308,14 +286,13 @@ class SegmentsInteractor(QObject):
             y[i] = y[self._ind]+m*(x[i]-x[self._ind])
             self.xy[i] = (x[i],y[i])
         # Update segments and markers
-        self.updateLinesMarkers()
         self.canvas.restore_region(self.background)
+        self.updateLinesMarkers()
         self.ax.draw_artist(self.line1)
         self.ax.draw_artist(self.line2)
         self.ax.draw_artist(self.line)
         self.canvas.update()
         self.canvas.flush_events()
-        # self.canvas.draw_idle()
         # Notify callback
         self.modSignal.emit('continuum guess modified')
 
@@ -330,16 +307,24 @@ class SegmentsInteractor(QObject):
 class LineInteractor(QObject):
     """
     A Gaussian line interactor.
+    Arguments:
+        ax axes to which the interactor is associated
+        c0 intercept of continuum
+        cs slope of continuum
+        x0 center of the line
+        A  amplitude of the line
+        fwhm FWHM of the line
+        epsilon max pixel distance to count as a vertex hit
     """
-    
     showverts = True
-    epsilon = 10  # max pixel distance to count as a vertex hit
     mySignal = pyqtSignal(str)
     modSignal = pyqtSignal(str)
 
-    def __init__(self, ax, c0, cs, x0, A, fwhm):
+    def __init__(self, ax, c0, cs, x0, A, fwhm, epsilon=10):
         super().__init__()
-
+        # To avoid crashing with maximum recursion depth exceeded
+        sys.setrecursionlimit(10000) # 10000 is 10x the default value
+        self.epsilon = epsilon
         self.ax = ax
         self.canvas = ax.figure.canvas
         self.c0 = c0  # Value of continuum at origin
@@ -356,8 +341,6 @@ class LineInteractor(QObject):
         x, y = zip(*self.xy)
         self.line = Line2D(x, y, marker='o', linestyle=None, linewidth=0., markerfacecolor=color, animated=True)                
         self.ax.add_line(self.line)
-        # Callback for changes
-        self.cid = self.gauss.add_callback(self.gauss_changed)
         self._ind = None  # the active vert
         self.connect()
 
@@ -383,7 +366,7 @@ class LineInteractor(QObject):
         self.cid_release = self.canvas.mpl_connect('button_release_event', self.button_release_callback)
         self.cid_motion = self.canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
         self.cid_key = self.canvas.mpl_connect('key_press_event', self.key_press_callback)
-        #self.canvas.draw_idle()
+        self.canvas.draw_idle()
 
     def disconnect(self):
         self.canvas.mpl_disconnect(self.cid_draw)
@@ -402,24 +385,12 @@ class LineInteractor(QObject):
         self.canvas.draw_idle()
         
     def draw_callback(self, event):
-        self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+        self.grab_background()
         self.ax.draw_artist(self.gauss)
         self.ax.draw_artist(self.line)
-        #self.canvas.draw_idle()
-        self.canvas.update()
-        self.canvas.flush_events()
         
     def grab_background(self):
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
-
-    def gauss_changed(self, gauss):
-        'this method is called whenever the artist object is called'
-        # only copy the artist props to the line (except visibility)
-        # Copy all styling from one artist to the first one
-        vis = self.line.get_visible()
-        # Artist.update_from(self.line, gauss)
-        self.line.update_from(gauss)
-        self.line.set_visible(vis)  
 
     def get_ind_under_point(self, event):
         'get the index of the point if within epsilon tolerance'
@@ -465,7 +436,7 @@ class LineInteractor(QObject):
             return
         self._ind = None
         # Redrawing
-        # self.canvas.draw_idle()
+        self.canvas.draw_idle()
 
     def motion_notify_callback(self, event):
         'on mouse movement'
@@ -480,12 +451,10 @@ class LineInteractor(QObject):
         # Update markers and Gaussian parameters
         x_, y_ = event.xdata, event.ydata
         x, y = zip(*self.xy)
-        x = np.asarray(x)
-        y = np.asarray(y)
+        #x = np.asarray(x)
+        #y = np.asarray(y)
         if self._ind == 0:
-            if x_ > x[1]:
-                pass
-            else:
+            if x_ < x[1]:
                 self.fwhm = 2 * (x[1] - x_)
         elif self._ind == 1:
             dx = x_ - x[1]
@@ -498,9 +467,7 @@ class LineInteractor(QObject):
             else:
                 self.A += dy
         elif self._ind == 2:
-            if x_ < x[1]:
-                pass
-            else:
+            if x_ > x[1]:
                 self.fwhm = 2 * (x_ - x[1])
         self.updateCurves()
         # Notify callback
