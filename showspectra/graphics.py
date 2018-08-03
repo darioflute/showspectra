@@ -119,8 +119,8 @@ class SpectrumCanvas(MplCanvas):
             self.span.active = False
             # Guess of continuum/lines
             self.guessContinuum = False
-            self.emlines = None
-            self.ablines = None
+            self.emlines = []
+            self.ablines = []
             # Callback to update the limit changes
             self.axes.callbacks.connect('xlim_changed', self.onXlimsChange)
             self.axes.callbacks.connect('ylim_changed', self.onYlimsChange)

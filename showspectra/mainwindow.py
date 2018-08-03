@@ -251,8 +251,8 @@ class GUI (QMainWindow):
             for line in self.sp.emlines + self.sp.ablines:
                 line.disconnect()
                 line = None
-            self.sp.emlines = None
-            self.sp.ablines = None
+            self.sp.emlines = []
+            self.sp.ablines = []
             self.sp.fig.canvas.draw_idle()
 
     def fitSpectrum(self):
