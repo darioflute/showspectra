@@ -113,8 +113,8 @@ class SpectrumCanvas(MplCanvas):
             self.span.active = False
             # Guess of continuum/lines
             self.guessContinuum = False
-            self.emlines = None
-            self.ablines = None
+            self.emlines = []
+            self.ablines = []
             # Callback to update the limit changes
             # Apparently this causes a bug in matplotlib
             #self.axes.callbacks.connect('xlim_changed', self.onXlimsChange)
