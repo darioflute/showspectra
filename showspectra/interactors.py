@@ -198,7 +198,14 @@ class SegmentsInteractor(QObject):
             print('no markers')
         self.canvas.draw_idle()
         
+    def safe_draw(self):
+        """Temporarily disconnect the draw_event callback to avoid recursion."""   
+        self.canvas.mpl_disconnect(self.cid_draw)
+        self.canvas.draw_idle()
+        self.cid_draw = self.canvas.mpl_connect('draw_event', self.draw_callback)
+            
     def draw_callback(self, event):
+        # self.safe_draw()
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         self.ax.draw_artist(self.line1)
         self.ax.draw_artist(self.line2)
@@ -326,6 +333,7 @@ class LineInteractor(QObject):
         sys.setrecursionlimit(10000) # 10000 is 10x the default value
         self.epsilon = epsilon
         self.ax = ax
+        self.fig = ax.figure
         self.canvas = ax.figure.canvas
         self.c0 = c0  # Value of continuum at origin
         self.cs = cs  # Slope of the continuum
@@ -388,9 +396,16 @@ class LineInteractor(QObject):
         self.grab_background()
         self.ax.draw_artist(self.gauss)
         self.ax.draw_artist(self.line)
-        
+    
+    def safe_draw(self):
+        """Temporarily disconnect the draw_event callback to avoid recursion."""   
+        self.canvas.mpl_disconnect(self.cid_draw)
+        self.canvas.draw_idle()
+        self.cid_draw = self.canvas.mpl_connect('draw_event', self.draw_callback)
+    
     def grab_background(self):
-        self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+        self.safe_draw()
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)  # or self.ax.bbox
 
     def get_ind_under_point(self, event):
         'get the index of the point if within epsilon tolerance'

@@ -86,6 +86,7 @@ class GUI (QMainWindow):
         layout = QVBoxLayout(self.spectralPanel)
         # Plotting panel
         self.sp = SpectrumCanvas(self.spectralPanel, width=4, height=2.5, dpi=100)
+        self.sp.maskSignal.connect(self.maskOtherSpectra)
         self.sp.toolbar = NavigationToolbar(self.sp, self)
         # Toolbar
         self.createToolbar()
@@ -148,16 +149,47 @@ class GUI (QMainWindow):
         """Mask spectrum mode."""
         try:
             self.sp.span.active ^= True
+            self.sp.changeVisibility('Lines')
+            self.sp.draw_idle()
             if self.sp.span.active:
+                if self.sp.showLines:
+                    self.sp.changeVisibility('Lines')
                 self.sp.showMask = True
+                self.sp.setMaskVisibility(self.sp.showMask)
+                self.sp.leg.get_texts()[5].set_alpha(1.0)
+                self.sp.leg.get_lines()[5].set_alpha(1.0)
+                self.sp.leg.get_texts()[3].set_alpha(0.3)
+                self.sp.leg.get_lines()[3].set_alpha(0.3)
+            else:
+                if not self.sp.showLines:
+                    self.sp.changeVisibility('Lines')
+                self.sp.leg.get_texts()[3].set_alpha(1.0)
+                self.sp.leg.get_lines()[3].set_alpha(1.0)
+                pass
         except BaseException:
             print('No spectrum defined')
             pass
         
+    def maskOtherSpectra(self, message):
+        """Spread to the other spectra the action on one spectrum."""
+        indmin = self.sp.masklimits[0]
+        indmax = self.sp.masklimits[1]
+        if message == 'mask':
+            for galaxy in self.galaxies:
+                galaxy.c[indmin:indmax] = 0
+        elif message == 'unmask':
+            for galaxy in self.galaxies:
+                galaxy.c[indmin:indmax] = 1
+        
     def xcorrSpectrum(self):
         """Cross-correlate a spectrum with SDSS templates."""   
         self.sp.showTemplate = True
-        cross_correlation(self)
+        xc = cross_correlation(self)
+        if xc == 1:
+            self.sp.gal.quality = 'OK'
+            self.sp.updateQualityAnnotation()
+        else:
+            self.sp.removeTemplate()
 
     def guessSpectrum(self):
         """Create a guess of continuum and lines."""
@@ -199,10 +231,14 @@ class GUI (QMainWindow):
         # Once the continuum is selected draw guesses for the lines required
         if self.nem > 0:
             self.sp.emlines = self.addLines(self.nem, x, 'emission')
+        else:
+            self.sp.emlines = []
         if self.nab > 0:
             self.sp.ablines = self.addLines(self.nab, x, 'absorption')
+        else:
+            self.sp.ablines = []
         self.sp.guessContinuum = False
-        
+       
     def addLines(self, n, x, type):
         lines = []
         for i in range(n):
@@ -258,6 +294,9 @@ class GUI (QMainWindow):
     def fitSpectrum(self):
         """Fit defined guess."""
         print('Fit the defined guess')
+        
+        
+        
 
     def fileOpen(self):
         """Opening spectral files."""

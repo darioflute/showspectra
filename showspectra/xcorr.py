@@ -157,7 +157,10 @@ def cross_correlation(self):
 
     # Print the top five x-correlations
     idx = np.argsort(snr)
-    idxs = idx[-7:]
+    if len(idx) > 20:
+        idxs = idx[-20:]
+    else:
+        idxs = idx
     idxs = idxs[::-1]  # reverse list
     self.zxcorr = z[idxs]
     self.szxcorr = sz[idxs]
@@ -183,6 +186,10 @@ def cross_correlation(self):
         # the possibility to choose a different solution
         self.selectZ = selectRedshift(self.zxcorr, self.szxcorr, self.snrxcorr, self.txcorr)
         self.selectZ.list.currentRowChanged.connect(self.sp.updateTemplate)
-        self.selectZ.exec_()
+        if self.selectZ.exec_() == 1:
+            return 1
+        else:
+            return 0
+            
     else:
         print("No template fits the data")

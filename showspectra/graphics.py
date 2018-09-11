@@ -1,7 +1,7 @@
 import numpy as np
 import os
 from PyQt5.QtWidgets import (QSizePolicy, QInputDialog)
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
@@ -46,19 +46,13 @@ class MplCanvas(FigureCanvas):
 
 class SpectrumCanvas(MplCanvas):
     """ Canvas to plot spectra """
-
+    maskSignal = pyqtSignal(str) 
     def __init__(self, *args, **kwargs):
         MplCanvas.__init__(self, *args, **kwargs)
         # Import lines
         from showspectra.lines import define_lines
         self.Lines = define_lines()
         # Display defaults
-        self.displayFlux = True
-        self.displayErr = True
-        self.displaySky = True
-        self.displayLines = True
-        self.displayMask = True
-        self.displayTemplate = True
         self.xlimits = None
         self.ylimits = None
         # Activate focus
@@ -122,8 +116,9 @@ class SpectrumCanvas(MplCanvas):
             self.emlines = None
             self.ablines = None
             # Callback to update the limit changes
-            self.axes.callbacks.connect('xlim_changed', self.onXlimsChange)
-            self.axes.callbacks.connect('ylim_changed', self.onYlimsChange)
+            # Apparently this causes a bug in matplotlib
+            #self.axes.callbacks.connect('xlim_changed', self.onXlimsChange)
+            #self.axes.callbacks.connect('ylim_changed', self.onYlimsChange)
 
     def drawSpectrum(self):
         self.axes.cla()
@@ -184,6 +179,9 @@ class SpectrumCanvas(MplCanvas):
                                               textcoords='axes fraction', xycoords='axes fraction')
         # Redshift
         self.zannotation = self.axes.annotate(" z = {:.4f}".format(self.gal.z), xy=(1.04, 0.75),
+                                              picker=5, xycoords='axes fraction', ha='center')
+        # Quality
+        self.qannotation = self.axes.annotate(" Q = {:s}".format(self.gal.quality), xy=(1.04,0.80),
                                               picker=5, xycoords='axes fraction', ha='center')
         # Line names
         self.annotations = []
@@ -273,6 +271,12 @@ class SpectrumCanvas(MplCanvas):
         self.pick_pos = None
         self.draw_idle()
         
+    def updateQualityAnnotation(self):        
+        self.qannotation.remove()
+        self.qannotation = self.axes.annotate(" Q = {:s}".format(self.gal.quality), xy=(1.04,0.80),
+                                              picker=5, xycoords='axes fraction', ha='center')
+        self.draw_idle()
+        
     def drawTemplate(self):
         """ Overplot the template """
         wg = self.gal.wc.copy()
@@ -302,6 +306,14 @@ class SpectrumCanvas(MplCanvas):
         self.gal.z = self.parent.zxcorr[newRow]
         self.gal.dz = self.parent.szxcorr[newRow]
         self.gal.zTemplate = self.parent.txcorr[newRow]
+        self.gal.limits()
+        self.drawSpectrum()
+        
+    def removeTemplate(self):
+        self.gal.zTemplate = None
+        self.gal.z = 0
+        self.gal.dz = 0
+        self.gal.quality = '?'
         self.gal.limits()
         self.drawSpectrum()
 
@@ -349,7 +361,7 @@ class SpectrumCanvas(MplCanvas):
         elif label == 'Lines':
             self.showLines ^= True
             for annotation in self.annotations:
-                annotation.set_visible(self.displayLines)
+                annotation.set_visible(self.showLines)
 
     def onSelect(self, xmin, xmax):
         """
@@ -364,15 +376,29 @@ class SpectrumCanvas(MplCanvas):
         if self.key in ['control', 'cmd','shift', 'alt']:
             # Unmask
             self.gal.c[indmin:indmax] = 1
+            self.masklimits = [indmin,indmax]
+            self.maskSignal.emit('unmask')
         else:
             # Mask
             self.gal.c[indmin:indmax] = 0
+            self.masklimits = [indmin,indmax]
+            self.maskSignal.emit('mask')
             # Plot rectangle
             # self.axes.axvspan(xmin, xmax, facecolor='LightYellow', alpha=1, linewidth=0, zorder=1)
         xlim = self.axes.get_xlim()  # Conserve new x limits
         self.gal.limits()  # Update y limits
         self.gal.xlim1, self.gal.xlim2 = xlim
         self.drawSpectrum()
+        
+    def setLinesVisibility(self, visibility=True):
+        for annotation in self.annotations:
+            annotation.set_visible(visibility)
+            
+    def setMaskVisibility(self, visibility=True):
+        if self.axrectangles is not None:
+            for rect in self.axrectangles:
+                rect.set_visible(visibility)
+        
 
     def onpick(self, event):
         if event.mouseevent.button != 1: return  # accept only the 1st mouse button
@@ -383,8 +409,7 @@ class SpectrumCanvas(MplCanvas):
             label = legline.get_label()
             if label == 'Lines':
                 self.showLines ^= True
-                for annotation in self.annotations:
-                    annotation.set_visible(self.showLines)
+                self.setLinesVisibility(self.showLines)
                 vis = self.showLines
                 i = 3
             elif label == 'Flux':
@@ -409,9 +434,7 @@ class SpectrumCanvas(MplCanvas):
             elif label == 'Mask':
                 self.showMask ^= True
                 vis = self.showMask
-                if self.axrectangles is not None:
-                    for rect in self.axrectangles:
-                        rect.set_visible(self.showMask)
+                self.setMaskVisibility(self.showMask)
                 i = 5
             elif label == 'Template':
                 self.showTemplate ^= True
@@ -425,9 +448,11 @@ class SpectrumCanvas(MplCanvas):
                 alpha = 1.0
             else:
                 alpha = 0.3
-            legline.set_alpha(alpha)
+            #legline.set_alpha(alpha)
             texts = self.leg.get_texts()
             texts[i].set_alpha(alpha)
+            lines = self.leg.get_lines()
+            lines[i].set_alpha(alpha)
             self.draw_idle()
         elif isinstance(event.artist, Text):
             if event.artist == self.zannotation:
@@ -436,7 +461,15 @@ class SpectrumCanvas(MplCanvas):
                     if znew != self.gal.z:
                         self.gal.z = znew
                         self.removeAnnotations()
+                        self.gal.limits()
                         self.drawSpectrum()
+            if event.artist == self.qannotation:
+                qnew = self.getQual(self.gal.quality)
+                if qnew is not None:
+                    if qnew != self.gal.quality:
+                        self.gal.quality = qnew
+                        self.removeAnnotations()
+                        self.drawSpectrum()                       
             elif event.artist == self.sannotation:
                 nnew = self.getInt(self.ngal)
                 if nnew is not None:
@@ -522,6 +555,14 @@ class SpectrumCanvas(MplCanvas):
         else:
             return None
         
+    def getQual(self, q):
+        items = ['OK','Guess','?','Star','AGN2']
+        qnew, okPressed = QInputDialog.getItem(self, "Quality","Q",items, 0, False)
+        if okPressed:
+            return qnew
+        else:
+            return None
+        
     def onPress(self, event):
         if event.button == 1:
             self.key = event.key
@@ -534,12 +575,13 @@ class SpectrumCanvas(MplCanvas):
                 x1 = event.xdata
                 x0 = self.pick_pos
                 # w0 = np.array([self.Lines[line][1]  for  line in self.Lines.keys()])
-                # wz = w0 * (1. + self.gal.z)
+                # wz = w0 * (1. + self.gal.z)<
                 z = (x1 - x0) / x0
                 self.gal.z = (1. + self.gal.z) * (1 + z) - 1.
                 for annotation in self.annotations:
                     annotation.remove()
                 self.zannotation.remove()
+                self.gal.limits()
                 self.drawSpectrum()
                 self.dragged = None
                 return True            

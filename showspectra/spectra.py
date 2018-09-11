@@ -18,7 +18,7 @@ class Galaxy(object):
         self.dz = 0.  # initialize redshift error
         self.zTemplate = None  # template with best cross-correlation
         self.spectype = None  # type (?,star,galaxy,broadAGN,sky)
-        self.quality = None  # quality ( OK,guess,?)
+        self.quality = '?'  # quality ( OK,guess,?)
         # Set limits
         self.limits()
         self.lines = {}
