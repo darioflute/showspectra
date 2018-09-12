@@ -197,6 +197,10 @@ class GUI (QMainWindow):
         """Create a guess of continuum and lines."""
         self.GP = guessParams()
         if self.GP.exec_() == QDialog.Accepted:
+            if self.sp.showLines:
+                self.sp.changeVisibility('Lines')
+                self.sp.leg.get_texts()[3].set_alpha(0.3)
+                self.sp.leg.get_lines()[3].set_alpha(0.3)
             cont, em, ab = self.GP.save()
             if cont == 'Constant':
                 self.zeroDeg = True
@@ -240,6 +244,11 @@ class GUI (QMainWindow):
         else:
             self.sp.ablines = []
         self.sp.guessContinuum = False
+        if not self.sp.showLines:
+            self.sp.changeVisibility('Lines')
+            self.sp.leg.get_texts()[3].set_alpha(1.0)
+            self.sp.leg.get_lines()[3].set_alpha(1.0)
+
        
     def addLines(self, n, x, type):
         lines = []
@@ -264,6 +273,7 @@ class GUI (QMainWindow):
         """Reacts to modifications of the guess."""
         if event == 'continuum guess modified':
             if self.sp.emlines is not None:
+                self.sp.modifyGuess = True
                 # Change continuum data in the line
                 for line in self.sp.emlines + self.sp.ablines:
                     oldc = line.c0 + line.cs * line.x0

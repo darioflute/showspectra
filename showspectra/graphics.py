@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from PyQt5.QtWidgets import (QSizePolicy, QInputDialog)
+from PyQt5.QtWidgets import (QSizePolicy, QInputDialog, QMessageBox)
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -105,6 +105,7 @@ class SpectrumCanvas(MplCanvas):
             self.showLines = True
             self.showMask = True
             self.showTemplate = False
+            self.modifyGuess = False
             # Plot spectrum
             self.drawSpectrum()            
             # Start the span selector
@@ -131,7 +132,11 @@ class SpectrumCanvas(MplCanvas):
             self.flux = savgol_filter(self.gal.fc, 7, 3)
         else:
             self.flux = self.gal.fc
-        self.fluxLine = self.axes.plot(self.wave[self.gal.c], self.flux[self.gal.c], label='Flux')
+        self.fluxLine = self.axes.plot(self.wave[self.gal.c], self.flux[self.gal.c],
+                                       color='royalblue', label='Flux')
+        # Overplot the original flux (if there is masking)
+        if np.min(self.gal.c) == 0:
+            self.axes.plot(self.wave, self.flux, color='royalblue', alpha=0.3)
         self.galspec, = self.fluxLine
         self.axes.set_xlim([self.gal.xlim1, self.gal.xlim2])
         self.axes.set_ylim([self.gal.ylim1, self.gal.ylim2])
@@ -410,6 +415,7 @@ class SpectrumCanvas(MplCanvas):
             self.maskSignal.emit('mask')
             # Plot rectangle
             # self.axes.axvspan(xmin, xmax, facecolor='LightYellow', alpha=1, linewidth=0, zorder=1)
+        # Modify y limits only
         xlim = self.axes.get_xlim()  # Conserve new x limits
         self.gal.limits()  # Update y limits
         self.gal.xlim1, self.gal.xlim2 = xlim
@@ -485,7 +491,7 @@ class SpectrumCanvas(MplCanvas):
             if event.artist == self.zannotation:
                 znew = self.getDouble(self.gal.z)
                 if znew is not None:
-                    if znew != self.gal.z:
+                    if znew != self.gal.z:                    
                         self.gal.z = znew
                         self.removeAnnotations()
                         self.gal.limits()
@@ -532,10 +538,12 @@ class SpectrumCanvas(MplCanvas):
                 xlim = self.axes.get_xlim()
                 dx = data[0]-data_[0]
                 self.axes.set_xlim(xlim[0]-dx, xlim[1]-dx)
+                self.gal.xlim1, self.gal.xlim2 = xlim[0]-dx, xlim[1]-dx
             if event.ydata != self._event.ydata:
                 ylim = self.axes.get_ylim()
                 dy = data[1]-data_[1]
                 self.axes.set_ylim(ylim[0]-dy, ylim[1]-dy)
+                self.gal.ylim1, self.gal.ylim2 = ylim[0]-dy, ylim[1]-dy
             self._event = event
             self.fig.canvas.draw()
     
@@ -554,11 +562,13 @@ class SpectrumCanvas(MplCanvas):
             hd = (y0 - ylim[0]) * factor
             hu = (ylim[1] - y0) * factor
             self.axes.set_ylim(y0 - hd, y0 + hu)
+            self.gal.ylim1, self.gal.ylim2 = y0 - hd, y0 + hu
         else:
             xlim = self.axes.get_xlim()
             wl = (x0 - xlim[0]) * factor
             wr = (xlim[1] - x0) * factor
             self.axes.set_xlim(x0 - wl, x0 + wr)
+            self.gal.xlim1, self.gal.xlim2 = x0 - wl, x0 + wr
         self.draw_idle()
 
     def removeAnnotations(self):
@@ -598,17 +608,27 @@ class SpectrumCanvas(MplCanvas):
 
     def onRelease(self, event):
         if event.button == 1:
-            if self.dragged is not None and self.pick_pos is not None:
+            # print("modify guess is ", self.modifyGuess)
+            if self.dragged is not None and self.pick_pos is not None and not self.modifyGuess :
                 x1 = event.xdata
                 x0 = self.pick_pos
-                # w0 = np.array([self.Lines[line][1]  for  line in self.Lines.keys()])
-                # wz = w0 * (1. + self.gal.z)<
                 z = (x1 - x0) / x0
-                self.gal.z = (1. + self.gal.z) * (1 + z) - 1.
+                newz = (1. + self.gal.z) * (1 + z) - 1.
+                flags = QMessageBox.Yes | QMessageBox.No
+                question = "Do you want to update the redshift to {:6.4f} ?".format(newz)
+                response = QMessageBox.question(self, "Question", question, flags)            
+                xlim1, xlim2 = self.axes.get_xlim()
+                xlim1 /= (1+self.gal.z)
+                xlim2 /= (1+self.gal.z)
+                if response == QMessageBox.Yes:
+                    self.gal.z = newz
+                # Update limits
+                self.gal.xlim1 = xlim1 * (1+self.gal.z)
+                self.gal.xlim2 = xlim2 * (1+self.gal.z)
+                # self.gal.limits()
                 for annotation in self.annotations:
                     annotation.remove()
                 self.zannotation.remove()
-                self.gal.limits()
                 self.drawSpectrum()
                 self.dragged = None
                 return True            
@@ -617,6 +637,8 @@ class SpectrumCanvas(MplCanvas):
                 self.toolbar.pan()
             if self.toolbar._active == "ZOOM":
                 self.toolbar.zoom()
+            # Update the sentinel telling if the guess was modified
+            self.modifyGuess = False
         elif event.button == 2:
             self.onPan(event)
 
