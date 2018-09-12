@@ -117,10 +117,12 @@ class GUI (QMainWindow):
                                             self.maskSpectrum, checkable=True)
         self.xcorrAction = self.createAction(iconpath+'galaxy.png','Cross-correlate with templates',
                                              'Ctrl+x', self.xcorrSpectrum)
-        self.guessAction = self.createAction(iconpath+'gauss.png', 'Guess continuum and lines',
+        self.guessAction = self.createAction(iconpath+'guess.png', 'Guess continuum and lines',
                                              'Ctrl+g', self.guessSpectrum)
-        self.fitAction = self.createAction(iconpath+'compute.png', 'Fit continuum and lines',
+        self.fitAction = self.createAction(iconpath+'fitline.png', 'Fit continuum and lines',
                                            'Ctrl+f', self.fitSpectrum)
+        self.removeAction = self.createAction(iconpath+'remove.png', 'Remove fitted line',
+                                           'Ctrl+r', self.removeFittedLine)
         self.openAction = self.createAction(iconpath+'open.png', 'Open files', 'Ctrl+o',
                                             self.fileOpen)
         self.teleAction = self.createAction(iconpath+'telescope.png', 'Select telescope', 'Ctrl+T',
@@ -133,6 +135,7 @@ class GUI (QMainWindow):
         self.tb.addAction(self.xcorrAction)
         self.tb.addAction(self.guessAction)
         self.tb.addAction(self.fitAction)
+        self.tb.addAction(self.removeAction)
         self.tb.addAction(self.teleAction)
         self.tb.addAction(self.openAction)
         self.tb.addAction(self.quitAction)
@@ -142,6 +145,10 @@ class GUI (QMainWindow):
         act.setShortcut(shortcut)
         act.triggered.connect(action)
         return act
+
+    def removeFittedLine(self):
+        """Program awaits for deleting a line with a click of the mouse."""
+        self.sp.removeFittedLine = True
 
     def fileQuit(self):
         """Quitting the program."""
@@ -195,6 +202,12 @@ class GUI (QMainWindow):
 
     def guessSpectrum(self):
         """Create a guess of continuum and lines."""
+        if self.sp.gal.quality == "?":
+            message = 'Please, find first the redshift of the spectrum !'
+            self.sb.showMessage(message, 10000)
+            print(message)
+            return
+        
         self.GP = guessParams()
         if self.GP.exec_() == QDialog.Accepted:
             if self.sp.showLines:

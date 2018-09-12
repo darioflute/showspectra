@@ -106,6 +106,7 @@ class SpectrumCanvas(MplCanvas):
             self.showMask = True
             self.showTemplate = False
             self.modifyGuess = False
+            self.removeFittedLine = False
             # Plot spectrum
             self.drawSpectrum()            
             # Start the span selector
@@ -116,6 +117,11 @@ class SpectrumCanvas(MplCanvas):
             self.guessContinuum = False
             self.emlines = []
             self.ablines = []
+            # Activate focus
+            self.setFocusPolicy(Qt.ClickFocus)
+            self.setFocus()
+            # Connect to press event
+            self.fig.canvas.mpl_connect('key_press_event', self.key_press_callback)
             # Callback to update the limit changes
             # Apparently this causes a bug in matplotlib
             #self.axes.callbacks.connect('xlim_changed', self.onXlimsChange)
@@ -300,6 +306,42 @@ class SpectrumCanvas(MplCanvas):
                 y = cont + l.amplitude * np.exp(-(x-l.location)**2/(2*l.scale**2))
                 print(line, l.intercept, l.slope, l.location, l.scale, l.amplitude)
                 self.axes.plot(x/(1.+z), y, color='lime', alpha=0.5)
+                
+                
+    def key_press_callback(self, event):
+        """Callback whenever a key is pressed."""
+        if not event.inaxes:
+            return
+        if event.key == 'd':
+            # Remove line
+            self.removeLine(event.xdata, event.ydata)
+    
+    def removeLine(self, x, y):
+        if len(self.gal.lines) > 0:
+            z = self.gal.z
+            gal_lines = self.gal.lines.copy()
+            dl = []
+            dls = []
+            dy = []
+            lines = []
+            for line in gal_lines:
+                lines.append(line)
+                l = gal_lines[line]
+                dx = (l.location - x * (1 + z))
+                c = l.intercept + l.slope * l.location
+                dl.append(dx)
+                dls.append(dx / l.scale)
+                dy.append((y - c) * l.amplitude)
+            dl = np.array(dl)
+            dls = np.array(dls)
+            dy = np.array(dy)
+            lines = np.array(lines)
+            idx, = np.where((dl == min(dl)) & (dy > 0) & (dls < 3))
+            if len(idx) > 0:
+                del self.gal.lines[lines[idx[0]]]
+                self.drawSpectrum()                
+        else:
+            print("No lines have been fitted.")
         
     def updateQualityAnnotation(self):        
         self.qannotation.remove()
@@ -609,7 +651,9 @@ class SpectrumCanvas(MplCanvas):
     def onRelease(self, event):
         if event.button == 1:
             # print("modify guess is ", self.modifyGuess)
-            if self.dragged is not None and self.pick_pos is not None and not self.modifyGuess :
+            if self.removeFittedLine:
+                self.removeLine(event.xdata, event.ydata)
+            elif self.dragged is not None and self.pick_pos is not None and not self.modifyGuess :
                 x1 = event.xdata
                 x0 = self.pick_pos
                 z = (x1 - x0) / x0
@@ -618,6 +662,7 @@ class SpectrumCanvas(MplCanvas):
                 question = "Do you want to update the redshift to {:6.4f} ?".format(newz)
                 response = QMessageBox.question(self, "Question", question, flags)            
                 xlim1, xlim2 = self.axes.get_xlim()
+                self.gal.ylim1, self.gal.ylim2 = self.axes.get_ylim()
                 xlim1 /= (1+self.gal.z)
                 xlim2 /= (1+self.gal.z)
                 if response == QMessageBox.Yes:
@@ -639,6 +684,7 @@ class SpectrumCanvas(MplCanvas):
                 self.toolbar.zoom()
             # Update the sentinel telling if the guess was modified
             self.modifyGuess = False
+            self.removeFittedLine = False
         elif event.button == 2:
             self.onPan(event)
 

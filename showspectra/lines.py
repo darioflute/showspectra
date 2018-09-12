@@ -140,10 +140,11 @@ def fitLines(sp,intercept,slope):
         A = line.A/norm
         print('amplitude ', A)
         if A > 0:
-            fit_params.add(li+'amplitude', value=A, min = 0,max= A*10)
+            fit_params.add(li+'amplitude', value=A, min=0.1*A, max=A*10)
         else:
-            fit_params.add(li+'amplitude', value=A, max = 0,min= A*10)
-        fit_params.add(li+'sigma', value=line.fwhm/2.355 * (1. + z))
+            fit_params.add(li+'amplitude', value=A, max=0.1*A, min=A*10)
+        sigma = line.fwhm/2.355 * (1. + z)
+        fit_params.add(li+'sigma', value=sigma, min=sigma/2., max=sigma*2)
     # Minimize
     # out = minimize(linesResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='leastsq')
     out = minimize(linesResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='Nelder')            
