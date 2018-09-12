@@ -1,7 +1,7 @@
-import collections
-
+import numpy as np
 
 def define_lines():
+    import collections
     alpha = u'\u03B1'
     beta = u'\u03B2'
     delta = u'\u03B3'
@@ -46,3 +46,117 @@ def define_lines():
         ('A:H-beta 4862', ['A:H' + beta, 4862.68]),
         ('A:H-alpha 6564', ['A:H' + alpha, 6564.61])
     ])
+
+def contResiduals(p,x,data=None,eps=None):
+    # unpack parameters:
+    #  extract .value attribute for each parameter
+    v = p.valuesdict()
+    intcp = v['intercept']
+    slope = v['slope']    
+    model = intcp+slope*x
+    if data is None:
+        return model
+    else:
+        if eps is None:
+            return (model - data)
+        else:
+            return (model - data)/eps
+
+def linesResiduals(p,x,data=None,eps=None):
+    # unpack parameters:
+    #  extract .value attribute for each parameter
+    v = p.valuesdict()
+    model = 0
+    n = len(v)//3
+    for i in range(n):
+        li = 'l'+str(i)+'_'
+        lc = v[li+'center']
+        la = v[li+'amplitude']
+        ls = v[li+'sigma']
+        model += la/(np.sqrt(2*np.pi)*ls)*np.exp(-(x-lc)*(x-lc)*0.5/(ls*ls))
+    if data is None:
+        return model
+    else:
+        if eps is None:
+            return (model - data)
+        else:
+            return (model - data)/eps
+
+def fitContinuum(sp):
+    """Fit the continuum defined in the guess."""
+    from lmfit import Parameters, minimize
+    slope = sp.guess.slope
+    intcpt = sp.guess.intcpt
+    xg,yg = zip(*sp.guess.xy)
+    xg = np.array(xg)
+    xg *= 1. + sp.gal.z
+    wc = sp.gal.wc
+    fc = sp.gal.fc
+    ec = sp.gal.ec
+    c = sp.gal.c
+    idx = np.where(((wc > xg[0]) & (wc < xg[1]) & c==1) | ((wc > xg[2]) & (wc < xg[3]) & c==1))
+    x = wc[idx]
+    y = fc[idx]
+    e = ec[idx]
+    # Definition of the model
+    fit_params = Parameters()
+    fit_params.add('intercept', value=intcpt)
+    fit_params.add('slope', value=slope)
+    # out = minimize(contResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='leastsq')
+    out = minimize(contResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='Nelder')
+    par = out.params.valuesdict() 
+    return par['intercept'], par['slope']
+
+def fitLines(sp,intercept,slope):
+    """Fit the lines defined in the guess."""
+    from lmfit import Parameters, minimize
+    # Select the input values for the fit
+    z = sp.gal.z
+    wc = sp.gal.wc
+    fc = sp.gal.fc
+    ec = sp.gal.ec
+    c = sp.gal.c
+    xg,yg = zip(*sp.guess.xy)
+    xg = np.array(xg)
+    xg *= (1. + sp.gal.z)  # Back to observed
+    idx = np.where((wc > xg[0]) & (wc < xg[3]) & c==1)
+    x = wc[idx]
+    y = fc[idx]
+    e = ec[idx]
+    continuum = intercept + slope * x
+    y -= continuum
+    # Normalization
+    norm = np.abs(np.median(continuum))
+    print('Normalization factor ',norm)
+    y /= norm
+    e /= norm
+    # Define the model
+    fit_params = Parameters()
+    # Define lines
+    for i,line in enumerate(sp.emlines+sp.ablines):
+        li = 'l'+str(i)+'_'
+        x0 = line.x0 * (1. + z)
+        fit_params.add(li+'center', value=x0,min=(x0-10), max=(x0+10))
+        A = line.A/norm
+        print('amplitude ', A)
+        if A > 0:
+            fit_params.add(li+'amplitude', value=A, min = 0,max= A*10)
+        else:
+            fit_params.add(li+'amplitude', value=A, max = 0,min= A*10)
+        fit_params.add(li+'sigma', value=line.fwhm/2.355 * (1. + z))
+    # Minimize
+    # out = minimize(linesResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='leastsq')
+    out = minimize(linesResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='Nelder')            
+    # Return lines fitted parameters
+    pars = out.params.valuesdict()
+    nlines = len(pars)//3
+    print ("Number of lines fitted: ", nlines)
+    linepars = []
+    for i in range(nlines):
+        li = 'l'+str(i)+'_'
+        center = pars[li+'center']
+        sigma = pars[li+'sigma']
+        amplitude = pars[li+'amplitude']*norm/(np.sqrt(2*np.pi)*sigma)
+        linepars.append([center, amplitude, sigma])
+    return linepars
+    

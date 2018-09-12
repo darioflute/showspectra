@@ -229,6 +229,15 @@ class SpectrumCanvas(MplCanvas):
             self.drawTemplate()
             lns += self.templateLine
             self.lines.append(self.templateLayer)
+        # Fitted lines
+        if len(self.gal.lines) > 0:
+            self.drawFittedLines()
+            self.fittedLines = self.axes.plot([0, 0.1], [0, 0], '-', color='lime',
+                                              alpha=alpham, label='Fits', zorder=11)
+            self.fittedLayer, = self.fittedLines
+            lns += self.fittedLines
+            self.lines.append(self.fittedLayer)
+        # Legend
         self.labs = [l.get_label() for l in lns]
         self.leg = self.axes.legend(lns, self.labs, loc='center right', bbox_to_anchor=(1.10, 0.2),
                                     fancybox=True, shadow=True, ncol=1)
@@ -270,6 +279,21 @@ class SpectrumCanvas(MplCanvas):
         self.dragged = None
         self.pick_pos = None
         self.draw_idle()
+        
+    def drawFittedLines(self):
+        """Overplot fitted lines."""
+        if len(self.gal.lines) > 0:
+            wc = self.gal.wc
+            z = self.gal.z
+            for line in self.gal.lines.copy():
+                l = self.gal.lines[line]
+                print('limits of fit ', line, l.w1, l.w2)
+                mask = (wc > l.w1) & (wc < l.w2)
+                x = wc[mask]
+                cont = l.intercept + l.slope * x
+                y = cont + l.amplitude * np.exp(-(x-l.location)**2/(2*l.scale**2))
+                print(line, l.intercept, l.slope, l.location, l.scale, l.amplitude)
+                self.axes.plot(x/(1.+z), y, color='lime', alpha=0.5)
         
     def updateQualityAnnotation(self):        
         self.qannotation.remove()
@@ -443,17 +467,19 @@ class SpectrumCanvas(MplCanvas):
                 self.templateLayer.set_visible(self.showTemplate)
             else:
                 print('Unknown label')
+                vis = -1
             # Transparency of legend
-            if vis:
+            if vis  == 1:
                 alpha = 1.0
-            else:
+            elif vis == 0:
                 alpha = 0.3
-            #legline.set_alpha(alpha)
-            texts = self.leg.get_texts()
-            texts[i].set_alpha(alpha)
-            lines = self.leg.get_lines()
-            lines[i].set_alpha(alpha)
-            self.draw_idle()
+            if vis >= 0:
+                #legline.set_alpha(alpha)
+                texts = self.leg.get_texts()
+                texts[i].set_alpha(alpha)
+                lines = self.leg.get_lines()
+                lines[i].set_alpha(alpha)
+                self.draw_idle()
         elif isinstance(event.artist, Text):
             if event.artist == self.zannotation:
                 znew = self.getDouble(self.gal.z)

@@ -14,6 +14,8 @@ from showspectra.inout import recoverAnalysis
 from showspectra.templates import readTemplates
 from showspectra.xcorr import cross_correlation
 from showspectra.interactors import SegmentsSelector, SegmentsInteractor, LineInteractor
+from showspectra.lines import fitContinuum, fitLines
+from showspectra.spectra import Line
 
 
 class GUI (QMainWindow):
@@ -290,13 +292,49 @@ class GUI (QMainWindow):
             self.sp.emlines = []
             self.sp.ablines = []
             self.sp.fig.canvas.draw_idle()
+        elif event == 'all':
+            self.sp.guess.disconnect()  
+            self.sp.guess = None
+            for line in self.sp.emlines + self.sp.ablines:
+                line.disconnect()
+                line = None
+            self.sp.emlines = []
+            self.sp.ablines = []
+            self.sp.fig.canvas.draw_idle()
+            
 
     def fitSpectrum(self):
         """Fit defined guess."""
-        print('Fit the defined guess')
-        
-        
-        
+        # Continuum  self.sp.guess
+        # Lines:     self.sp.emlines+self.sp.ablines
+        intercept, slope = fitContinuum(self.sp)
+        linefitpars = fitLines(self.sp, intercept, slope)
+        z = self.sp.gal.z
+        xg,yg = zip(*self.sp.guess.xy)
+        xg = np.array(xg) * (1. + self.sp.gal.z)
+        LinesNames = list(self.sp.Lines.keys())
+        LinesCenters = [list(self.sp.Lines.values())[i][1] for i in range(len(LinesNames))]
+        print('Cont. ', intercept, slope)
+        for pars in linefitpars:
+            loc, amp, scale = pars
+            print('loc, scale, amp ', loc, scale, amp)
+            line = Line(xg[0], xg[3], intercept, slope, loc, scale, amp, z)
+            dl = np.abs(LinesCenters - loc / (1. + z))
+            idx, = np.where(dl == min(dl))
+            if len(idx) > 1:
+                if amp > 0:
+                    linename = LinesNames[idx[0]] # Emission
+                else:
+                    linename = LinesNames[idx[1]]  # Absorption
+            else:
+                linename = LinesNames[idx[0]]
+            print(linename)
+            # Add to dictionary
+            self.sp.gal.lines[linename] = line
+        # Take out guess
+        self.onRemoveContinuum('all')
+        # Draw fitted lines and continuum
+        self.sp.drawSpectrum()
 
     def fileOpen(self):
         """Opening spectral files."""
