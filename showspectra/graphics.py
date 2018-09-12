@@ -285,6 +285,7 @@ class SpectrumCanvas(MplCanvas):
         if len(self.gal.lines) > 0:
             wc = self.gal.wc
             z = self.gal.z
+            # Copy to avoid error: "RuntimeError: dictionary changed size during iteration”
             for line in self.gal.lines.copy():
                 l = self.gal.lines[line]
                 print('limits of fit ', line, l.w1, l.w2)
