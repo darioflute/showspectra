@@ -663,14 +663,14 @@ class SpectrumCanvas(MplCanvas):
                 response = QMessageBox.question(self, "Question", question, flags)            
                 xlim1, xlim2 = self.axes.get_xlim()
                 self.gal.ylim1, self.gal.ylim2 = self.axes.get_ylim()
+                # Compute limits as observer
                 xlim1 /= (1+self.gal.z)
                 xlim2 /= (1+self.gal.z)
                 if response == QMessageBox.Yes:
                     self.gal.z = newz
-                # Update limits
+                # Update limits with new redshift
                 self.gal.xlim1 = xlim1 * (1+self.gal.z)
                 self.gal.xlim2 = xlim2 * (1+self.gal.z)
-                # self.gal.limits()
                 for annotation in self.annotations:
                     annotation.remove()
                 self.zannotation.remove()
@@ -679,8 +679,14 @@ class SpectrumCanvas(MplCanvas):
                 return True            
             # Deselect pan & zoom options on mouse release
             if self.toolbar._active == "PAN":
+                # Save new limits
+                self.gal.xlim1, self.gal.xlim2 = self.axes.get_xlim()
+                self.gal.ylim1, self.gal.ylim2 = self.axes.get_ylim()
                 self.toolbar.pan()
             if self.toolbar._active == "ZOOM":
+                # Save new limits
+                self.gal.xlim1, self.gal.xlim2 = self.axes.get_xlim()
+                self.gal.ylim1, self.gal.ylim2 = self.axes.get_ylim()
                 self.toolbar.zoom()
             # Update the sentinel telling if the guess was modified
             self.modifyGuess = False
@@ -698,6 +704,7 @@ class SpectrumCanvas(MplCanvas):
 class NavigationToolbar(NavigationToolbar2QT):
     def __init__(self, canvas, parent):
         self.iconDir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons")
+        # Limit to three icons with new help messages
         self.toolitems = [
             ('Home', 'Go back to original limits', 'home', 'home'),
             ('Pan', 'Pan figure', 'move', 'pan'),
