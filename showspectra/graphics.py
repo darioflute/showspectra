@@ -18,7 +18,8 @@ rcParams['font.family'] = 'STIXGeneral'
 rcParams['font.size'] = 13
 rcParams['mathtext.fontset'] = 'stix'
 rcParams['legend.numpoints'] = 1
-
+# Local
+from showspectra.dialogs import selectLine
 
 class MplCanvas(FigureCanvas):
     """Basic matplotlib canvas class."""
@@ -104,9 +105,10 @@ class SpectrumCanvas(MplCanvas):
             self.showErr = True
             self.showLines = True
             self.showMask = True
-            self.showTemplate = False
+            self.showTemplate = True
             self.modifyGuess = False
             self.removeFittedLine = False
+            self.identifyLine = False
             # Plot spectrum
             self.drawSpectrum()            
             # Start the span selector
@@ -193,6 +195,9 @@ class SpectrumCanvas(MplCanvas):
                                               picker=5, xycoords='axes fraction', ha='center')
         # Quality
         self.qannotation = self.axes.annotate(" Q = {:s}".format(self.gal.quality), xy=(1.04,0.80),
+                                              picker=5, xycoords='axes fraction', ha='center')
+        # Spectral type
+        self.tannotation = self.axes.annotate(" T = {:s}".format(self.gal.spectype), xy=(1.04,0.85),
                                               picker=5, xycoords='axes fraction', ha='center')
         # Line names
         self.annotations = []
@@ -315,6 +320,33 @@ class SpectrumCanvas(MplCanvas):
         if event.key == 'd':
             # Remove line
             self.removeLine(event.xdata, event.ydata)
+            
+    def chooseLine(self, x):
+       """Present a dialog with list of lines to associate to mouse selected position.""" 
+       # Observer wavelength
+       zold = self.gal.z
+       w = x * (1. + self.gal.z)
+       wl = []
+       for line in self.Lines.copy():
+           l = self.Lines[line]
+           wl.append(l[1])
+       wl = np.array(wl)
+       self.wz = (w - wl)/wl
+       
+       self.selectZ = selectLine(w, self.Lines)
+       self.selectZ.list.currentRowChanged.connect(self.updateRedshift)
+       if self.selectZ.exec_() == 1:
+           return 1
+       else:
+           self.gal.z = zold
+           self.gal.limits()
+           self.drawSpectrum()
+           return 0
+       
+    def updateRedshift(self, newRow):
+        self.gal.z = self.wz[newRow]
+        self.gal.limits()
+        self.drawSpectrum()
     
     def removeLine(self, x, y):
         if len(self.gal.lines) > 0:
@@ -347,6 +379,9 @@ class SpectrumCanvas(MplCanvas):
         self.qannotation.remove()
         self.qannotation = self.axes.annotate(" Q = {:s}".format(self.gal.quality), xy=(1.04,0.80),
                                               picker=5, xycoords='axes fraction', ha='center')
+        self.tannotation.remove()
+        self.tannotation = self.axes.annotate(" T = {:s}".format(self.gal.spectype), xy=(1.04,0.85),
+                                              picker=5, xycoords='axes fraction', ha='center')
         self.draw_idle()
         
     def drawTemplate(self):
@@ -369,7 +404,7 @@ class SpectrumCanvas(MplCanvas):
         fi -= bgr
         alpha = np.sum(fi*ft)/np.sum(ft*ft)
         ft *= alpha
-        self.templateLine = self.axes.plot(wt,ft+bgr,color='Cyan',label='Template', alpha=0.4)
+        self.templateLine = self.axes.plot(wt, ft+bgr, color='Cyan', label='Template', alpha=0.4)
         self.templateLayer, = self.templateLine
         self.templateLayer.set_visible(self.showTemplate)
         
@@ -386,6 +421,8 @@ class SpectrumCanvas(MplCanvas):
         self.gal.z = 0
         self.gal.dz = 0
         self.gal.quality = '?'
+        if self.gal.spectype != 'sky':
+            self.gal.spectype = '?'
         self.gal.limits()
         self.drawSpectrum()
 
@@ -552,6 +589,13 @@ class SpectrumCanvas(MplCanvas):
                         self.parent.ngal = nnew
                         self.removeAnnotations()
                         self.drawSpectrum()
+            if event.artist == self.tannotation:
+                tnew = self.getType(self.gal.spectype)
+                if tnew is not None:
+                    if tnew != self.gal.spectype:
+                        self.gal.spectype = tnew
+                        self.removeAnnotations()
+                        self.drawSpectrum()                       
             else:
                 self.dragged = event.artist
                 self.pick_pos = event.mouseevent.xdata
@@ -635,12 +679,20 @@ class SpectrumCanvas(MplCanvas):
             return None
         
     def getQual(self, q):
-        items = ['OK','Guess','?','Star','AGN2']
+        items = ['OK','Guess','?']
         qnew, okPressed = QInputDialog.getItem(self, "Quality","Q",items, 0, False)
         if okPressed:
             return qnew
         else:
             return None
+
+    def getType(self, t):
+        items = ['Galaxy','Star','BroadAGN','?']
+        tnew, okPressed = QInputDialog.getItem(self, "Type","T",items, 0, False)
+        if okPressed:
+            return tnew
+        else:
+             return None
         
     def onPress(self, event):
         if event.button == 1:
@@ -653,6 +705,8 @@ class SpectrumCanvas(MplCanvas):
             # print("modify guess is ", self.modifyGuess)
             if self.removeFittedLine:
                 self.removeLine(event.xdata, event.ydata)
+            if self.identifyLine:
+                self.chooseLine(event.xdata)
             elif self.dragged is not None and self.pick_pos is not None and not self.modifyGuess :
                 x1 = event.xdata
                 x0 = self.pick_pos
@@ -664,13 +718,13 @@ class SpectrumCanvas(MplCanvas):
                 xlim1, xlim2 = self.axes.get_xlim()
                 self.gal.ylim1, self.gal.ylim2 = self.axes.get_ylim()
                 # Compute limits as observer
-                xlim1 /= (1+self.gal.z)
-                xlim2 /= (1+self.gal.z)
+                xlim1 *= (1+self.gal.z)
+                xlim2 *= (1+self.gal.z)
                 if response == QMessageBox.Yes:
                     self.gal.z = newz
                 # Update limits with new redshift
-                self.gal.xlim1 = xlim1 * (1+self.gal.z)
-                self.gal.xlim2 = xlim2 * (1+self.gal.z)
+                self.gal.xlim1 = xlim1 / (1+self.gal.z)
+                self.gal.xlim2 = xlim2 / (1+self.gal.z)
                 for annotation in self.annotations:
                     annotation.remove()
                 self.zannotation.remove()
@@ -691,6 +745,7 @@ class SpectrumCanvas(MplCanvas):
             # Update the sentinel telling if the guess was modified
             self.modifyGuess = False
             self.removeFittedLine = False
+            self.identifyLine = False
         elif event.button == 2:
             self.onPan(event)
 

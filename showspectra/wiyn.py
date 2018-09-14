@@ -38,6 +38,8 @@ def getGalaxies(file):
         s = re.search('sky', apstring)
         if s:
             galaxies[i].spectype = 'sky'
+        else:
+            galaxies[i].spectype = '?'
     return galaxies
 
 

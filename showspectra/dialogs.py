@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QDialog, QPushButton, QGroupBox,
                              QRadioButton, QButtonGroup, QFileDialog,
                              QListWidget, QListWidgetItem)
 from PyQt5.QtCore import QSize
+import numpy as np
 
 
 class selectTelescope(QDialog):
@@ -178,6 +179,53 @@ class selectRedshift(QDialog):
 
     def setupUI(self):
         self.setWindowTitle("Select best template redshift")
+        layout = QVBoxLayout()
+        hbox = QHBoxLayout()
+        hgroup = QGroupBox()
+        self.list = QListWidget(self)
+        for z in self.zlist:
+            item = QListWidgetItem(self.list)
+            item.setText(z)
+        self.list.setMaximumSize(QSize(400,100))
+        self.button1 = QPushButton("OK")
+        self.button1.clicked.connect(self.OK)
+        self.button2 = QPushButton("Cancel")
+        self.button2.clicked.connect(self.Cancel)
+        hbox.addWidget(self.button1)
+        hbox.addWidget(self.button2)
+        hgroup.setLayout(hbox)
+        # Layout
+        layout.addWidget(self.list)
+        layout.addWidget(hgroup)
+        self.setLayout(layout)
+
+    def OK(self):
+        self.done(1)
+        
+    def Cancel(self):
+        self.done(0)
+
+
+class selectLine(QDialog):
+    """Visual selection of line in the spectrum."""
+    
+    def __init__(self, w, lines, parent=None):
+        super().__init__()
+        self.names = []
+        self.waves = []
+        for line in lines.copy():
+            l = lines[line]
+            self.names.append(l[0])
+            self.waves.append(l[1])
+        self.names = np.array(self.names)
+        self.waves = np.array(self.waves)
+        self.z = (w - self.waves)/self.waves
+        self.zlist = ["%s %.5f %.4f" % (n, w, z) for (n ,w, z) \
+                      in zip(self.names, self.waves, self.z)]
+        self.setupUI()
+
+    def setupUI(self):
+        self.setWindowTitle("Select best line")
         layout = QVBoxLayout()
         hbox = QHBoxLayout()
         hgroup = QGroupBox()

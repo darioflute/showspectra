@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt
 
 from showspectra.graphics import SpectrumCanvas, NavigationToolbar
 from showspectra.dialogs import selectTelescope, selectFiles, guessParams
-from showspectra.inout import recoverAnalysis
+from showspectra.inout import importAnalysis, exportAnalysis
 from showspectra.templates import readTemplates
 from showspectra.xcorr import cross_correlation
 from showspectra.interactors import SegmentsSelector, SegmentsInteractor, LineInteractor
@@ -43,6 +43,9 @@ class GUI (QMainWindow):
 
     def initUI(self):
         """User interface."""
+        # Read spectral templates
+        # readTemplates(self)
+        # Start user interface
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
         # Main widget
@@ -121,6 +124,8 @@ class GUI (QMainWindow):
                                              'Ctrl+g', self.guessSpectrum)
         self.fitAction = self.createAction(iconpath+'fitline.png', 'Fit continuum and lines',
                                            'Ctrl+f', self.fitSpectrum)
+        self.idlineAction = self.createAction(iconpath+'identifyline.png', 'Identify line',
+                                           'Ctrl+l', self.identifyLine)
         self.removeAction = self.createAction(iconpath+'remove.png', 'Remove fitted line',
                                            'Ctrl+r', self.removeFittedLine)
         self.openAction = self.createAction(iconpath+'open.png', 'Open files', 'Ctrl+o',
@@ -135,6 +140,7 @@ class GUI (QMainWindow):
         self.tb.addAction(self.xcorrAction)
         self.tb.addAction(self.guessAction)
         self.tb.addAction(self.fitAction)
+        self.tb.addAction(self.idlineAction)
         self.tb.addAction(self.removeAction)
         self.tb.addAction(self.teleAction)
         self.tb.addAction(self.openAction)
@@ -150,8 +156,13 @@ class GUI (QMainWindow):
         """Program awaits for deleting a line with a click of the mouse."""
         self.sp.removeFittedLine = True
 
+    def identifyLine(self):
+        """Identify a line by eye."""
+        self.sp.identifyLine = True
+
     def fileQuit(self):
         """Quitting the program."""
+        exportAnalysis(self.galaxies, self.ngal, self.dirname)
         self.close()
 
     def maskSpectrum(self):
@@ -189,6 +200,8 @@ class GUI (QMainWindow):
         elif message == 'unmask':
             for galaxy in self.galaxies:
                 galaxy.c[indmin:indmax] = 1
+        # Export the new analysis - to save stuff in case of crash
+        exportAnalysis(self.galaxies, self.ngal, self.dirname)
         
     def xcorrSpectrum(self):
         """Cross-correlate a spectrum with SDSS templates."""   
@@ -196,7 +209,10 @@ class GUI (QMainWindow):
         xc = cross_correlation(self)
         if xc == 1:
             self.sp.gal.quality = 'OK'
+            self.sp.gal.spectype = 'Galaxy'
             self.sp.updateQualityAnnotation()
+            # Export the new analysis - to save stuff in case of crash
+            exportAnalysis(self.galaxies, self.ngal, self.dirname)
         else:
             self.sp.removeTemplate()
 
@@ -358,6 +374,8 @@ class GUI (QMainWindow):
         self.onRemoveContinuum('all')
         # Draw fitted lines and continuum
         self.sp.drawSpectrum()
+        # Export the new analysis - to save stuff in case of crash
+        exportAnalysis(self.galaxies, self.ngal, self.dirname)
 
     def fileOpen(self):
         """Opening spectral files."""
@@ -381,9 +399,13 @@ class GUI (QMainWindow):
             print('Opening ', sky)
             self.sky = getSky(sky)
             # Recover previous analysis
-            if (os.path.exists(self.dirname + '/showspectra.fits')):
+            #if (os.path.exists(self.dirname + '/showspectra.fits')):
+            #    print("Recovering previous analysis ...")
+            #    recoverAnalysis(self)
+            if (os.path.exists(self.dirname + '/showspectra.json')):
                 print("Recovering previous analysis ...")
-                recoverAnalysis(self)
+                analysisFile = self.dirname + '/showspectra.json'
+                self.ngal, self.ngalaxies, self.galaxies = importAnalysis(analysisFile, self.galaxies)
             else:
                 self.ngal = 0
                 self.ngalaxies = len(self.galaxies)
@@ -401,10 +423,10 @@ def main():
     app.setWindowIcon(QIcon(QPixmap(gui.path0 + '/icons/showspectra.png')))
     app.setApplicationName('SHOWSPECTRA')
     app.setApplicationVersion('0.01-beta')
+    # Read templates
+    readTemplates(gui)
     # Select telescope and open first files
     gui.selTelescope()
     gui.fileOpen()
-    # Read spectral templates into the gui
-    readTemplates(gui)
     # Exec app
     sys.exit(app.exec_())

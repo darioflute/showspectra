@@ -75,3 +75,115 @@ def recoverAnalysis(self):
             self.ngal = hdr['ngal']
         igal += 1
     hdulist.close()
+
+
+import json
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(MyEncoder, self).default(obj)
+
+def exportAnalysis(galaxies, ngal, dirname, name=None):
+    """Export results of analysis."""
+    import json, io  
+    from collections import OrderedDict
+    data = OrderedDict([
+            ('ngal', ngal),
+            ('ngalaxies', len(galaxies)),
+            ('waveUnit', 'micrometer'),
+            ('fluxUnit', 'Jy')
+            ])
+    for i, galaxy in enumerate(galaxies):
+        # Define list of lines
+        lines = {}
+        for line in galaxy.lines.copy():
+            l = galaxy.lines[line]
+            l.computeAll()
+            lines[line] = {
+                    'w1': l.w1,
+                    'w2': l.w2,
+                    'z': l.z,
+                    'location': l.location,
+                    'scale': l.scale,
+                    'amplitude': l.amplitude,
+                    'intercept': l.intercept,
+                    'slope': l.slope,
+                    'FWHM': l.FWHM,
+                    'EW': l.EW,
+                    'flux': l.flux
+                    }
+        # Find masked regions
+        nmask = ~galaxy.c
+        if np.sum(nmask) > 0:
+            c = galaxy.c.astype(int)
+            c = np.append(c, 1)
+            dc = c[1:] - c[:-1]
+            istart = np.where(dc == -1)
+            if c[0] == 0:
+                istart = np.append(0, istart)
+            iend = np.where(dc == 1)
+            istart = np.ravel(istart)
+            iend = np.ravel(iend)
+            masked = [(i,j) for (i,j) in zip(istart,iend)]
+        else:
+            masked = []
+        # Define data for the single galaxy
+        data[i] = {
+                'z': galaxy.z,
+                'dz': galaxy.dz,
+                'ra': galaxy.ra,
+                'dec': galaxy.dec,
+                'quality': galaxy.quality,
+                'spectype': galaxy.spectype,
+                'template': galaxy.zTemplate,
+                'aperture': galaxy.aperture,
+                'fiber': galaxy.fiber,
+                'lines': lines,
+                'masked': masked
+                }
+        data.move_to_end(i, last=True) # Move element to the end
+    with io.open(dirname+'/showspectra.json', mode='w') as f:
+            str_= json.dumps(data, indent=2, separators=(',',': '),
+                             ensure_ascii=False, cls=MyEncoder)
+            f.write(str_)
+
+def importAnalysis(file, galaxies):
+    """Import results from previous analysis."""
+    import json
+    from collections import OrderedDict
+    from showspectra.spectra import Line
+    
+    with open(file) as f:
+        data = json.load(f, object_pairs_hook=OrderedDict)
+    
+    ngal = data['ngal']
+    ngalaxies = data['ngalaxies']
+    print('total galaxies: ', ngalaxies)
+    for key in range(ngalaxies):
+        # print('galaxy no: ', key)
+        g = galaxies[key]
+        d = data[str(key)]
+        g.z = d['z']
+        g.dz = d['dz']
+        g.quality = d['quality']
+        g.spectype = d['spectype']
+        try:
+            g.zTemplate = d['template']
+        except:
+            g.zTemplate = None
+        masks = d['masked']
+        for mask in masks:
+            g.c[mask[0]:mask[1]] = 0
+        lines = d['lines']
+        for line in lines.copy():
+            l = lines[line]
+            g.lines[line] = Line(l['w1'], l['w2'], l['intercept'], l['slope'],
+                    l['location'], l['scale'], l['amplitude'], l['z'])
+            
+    return ngal, ngalaxies, galaxies

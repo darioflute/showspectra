@@ -14,10 +14,12 @@ class Galaxy(object):
         self.wc = wave  # initialize clipped wavelenght
         self.fc = flux  # initialize clipped spectrum
         self.ec = np.ones(len(wave))  # initialize to same error
-        self.z = 0.  # initialize redshift
+        self.z = 0.  # initialize redshift [from xcorr]
         self.dz = 0.  # initialize redshift error
+        self.ze = 0.  # z from emission lines
+        self.za = 0.  # z from absorption lines
         self.zTemplate = None  # template with best cross-correlation
-        self.spectype = None  # type (?,star,galaxy,broadAGN,sky)
+        self.spectype = '?' # type (?,star,galaxy,broadAGN,sky)
         self.quality = '?'  # quality ( OK,guess,?)
         # Set limits
         self.limits()
