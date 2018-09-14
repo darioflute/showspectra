@@ -120,12 +120,12 @@ class GUI (QMainWindow):
                                             self.maskSpectrum, checkable=True)
         self.xcorrAction = self.createAction(iconpath+'galaxy.png','Cross-correlate with templates',
                                              'Ctrl+x', self.xcorrSpectrum)
+        self.idlineAction = self.createAction(iconpath+'identifyline.png', 'Identify line',
+                                           'Ctrl+l', self.identifyLine)
         self.guessAction = self.createAction(iconpath+'guess.png', 'Guess continuum and lines',
                                              'Ctrl+g', self.guessSpectrum)
         self.fitAction = self.createAction(iconpath+'fitline.png', 'Fit continuum and lines',
                                            'Ctrl+f', self.fitSpectrum)
-        self.idlineAction = self.createAction(iconpath+'identifyline.png', 'Identify line',
-                                           'Ctrl+l', self.identifyLine)
         self.removeAction = self.createAction(iconpath+'remove.png', 'Remove fitted line',
                                            'Ctrl+r', self.removeFittedLine)
         self.openAction = self.createAction(iconpath+'open.png', 'Open files', 'Ctrl+o',
@@ -138,9 +138,9 @@ class GUI (QMainWindow):
         # Add actions
         self.tb.addAction(self.maskAction)
         self.tb.addAction(self.xcorrAction)
+        self.tb.addAction(self.idlineAction)
         self.tb.addAction(self.guessAction)
         self.tb.addAction(self.fitAction)
-        self.tb.addAction(self.idlineAction)
         self.tb.addAction(self.removeAction)
         self.tb.addAction(self.teleAction)
         self.tb.addAction(self.openAction)

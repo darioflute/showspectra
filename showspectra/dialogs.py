@@ -110,15 +110,16 @@ class selectFiles(QDialog):
             # Try to guess error and sky files from the same directory
             from glob import glob as gb
             import re
+            print('path is ', path)
             files = gb(path + '/*.fit*')
             print('Files are ', files)
-            r = re.compile(".*err.*\.fits*", flags=re.IGNORECASE)
+            r = re.compile(".*err.*\.fit.*", flags=re.IGNORECASE)
             rErr = list(filter(r.match, files))
             if rErr is not None:
                 self.err = rErr[0]
                 head, tail = os.path.split(self.err)
                 self.b2.setText('Err: ' + tail)
-            r = re.compile(".*sky.*\.fits*", flags=re.IGNORECASE)
+            r = re.compile(".*sky.*\.fit.*", flags=re.IGNORECASE)
             rSky = list(filter(r.match, files))
             if rSky is not None:
                 self.sky = rSky[0]
@@ -141,7 +142,7 @@ class selectFiles(QDialog):
         fd = QFileDialog()
         fd.setWindowTitle('Open ' + label + ' File')
         fd.setLabelText(QFileDialog.Accept, "Select " + label)
-        fd.setNameFilters(["Fits Files (*.fits, *.fit)"])
+        fd.setNameFilters(["Fits Files (*.fits *.fit *.FITS *.FIT)"])
         fd.setOptions(QFileDialog.DontUseNativeDialog)
         fd.setViewMode(QFileDialog.List)
         if (fd.exec()):
