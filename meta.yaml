@@ -1,0 +1,29 @@
+package:
+  name: showspectra
+  version: 0.01
+
+source:
+  git_tag: master
+  git_url: https://github.com/darioflute/showspectra.git
+
+build:
+  
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python >=3.6
+    - numpy >=1.9.3
+    - matplotlib >=2.1.1
+        
+test:
+  imports:
+    - showspectra
+
+about:
+  home: https://github.com/darioflute/showspectra
+  license: GPL3
+  license_file: LICENSE
+  description: 'Package to analyze multi-object spectra'
