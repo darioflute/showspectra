@@ -118,7 +118,7 @@ def fitLines(sp,intercept,slope):
     c = sp.gal.c
     xg,yg = zip(*sp.guess.xy)
     xg = np.array(xg)
-    xg *= (1. + sp.gal.z)  # Back to observed
+    xg *= (1. + z)  # Back to observed
     idx = np.where((wc > xg[0]) & (wc < xg[3]) & c==1)
     x = wc[idx]
     y = fc[idx]
@@ -136,7 +136,7 @@ def fitLines(sp,intercept,slope):
     for i,line in enumerate(sp.emlines+sp.ablines):
         li = 'l'+str(i)+'_'
         x0 = line.x0 * (1. + z)
-        fit_params.add(li+'center', value=x0,min=(x0-10), max=(x0+10))
+        fit_params.add(li+'center', value=x0, min=(x0-10), max=(x0+10))
         A = line.A/norm
         print('amplitude ', A)
         if A > 0:
@@ -155,8 +155,8 @@ def fitLines(sp,intercept,slope):
     linepars = []
     for i in range(nlines):
         li = 'l'+str(i)+'_'
-        center = pars[li+'center']
-        sigma = pars[li+'sigma']
+        center = pars[li+'center']  # Observed
+        sigma = pars[li+'sigma']    # Observed
         amplitude = pars[li+'amplitude']*norm/(np.sqrt(2*np.pi)*sigma)
         linepars.append([center, amplitude, sigma])
     return linepars

@@ -59,19 +59,23 @@ class Sky(object):
         
 class Line(object):
     """Line definition."""
-    def __init__(self, w1, w2, intcpt, slope, loc, scale, amp, z):
+    def __init__(self, w1, w2, center, intcpt, slope, loc, scale, amp):
         self.w1 = w1
         self.w2 = w2
+        self.center = center
         self.location = loc
         self.scale = scale
         self.amplitude = amp
         self.intercept = intcpt
         self.slope = slope
-        self.z = z
+        print('center is: ', self.center)
+        print('location is: ', self.location)
         self.computeAll()
         
     def computeAll(self):
-        w0 = (self.intercept + self.slope * self.location) * (1 + self.z)
+        self.z = (self.location-self.center)/self.center
+        print('z is ', self.z)
+        w0 = (self.intercept + self.slope * self.location) # * (1 + self.z)
         self.flux = np.sqrt(2 * np.pi) * np.abs(self.amplitude) * self.scale
         self.EW = self.flux / w0
         self.FWHM = 2.35483 * self.scale / (1 + self.z)

@@ -357,7 +357,6 @@ class GUI (QMainWindow):
         for pars in linefitpars:
             loc, amp, scale = pars
             print('loc, scale, amp ', loc, scale, amp)
-            line = Line(xg[0], xg[3], intercept, slope, loc, scale, amp, z)
             dl = np.abs(LinesCenters - loc / (1. + z))
             idx, = np.where(dl == min(dl))
             if len(idx) > 1:
@@ -368,6 +367,8 @@ class GUI (QMainWindow):
             else:
                 linename = LinesNames[idx[0]]
             print(linename)
+            center = LinesCenters[idx[0]]
+            line = Line(xg[0], xg[3], center, intercept, slope, loc, scale, amp)
             # Add to dictionary
             self.sp.gal.lines[linename] = line
         # Take out guess

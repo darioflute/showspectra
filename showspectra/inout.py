@@ -109,6 +109,7 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
                     'w1': l.w1,
                     'w2': l.w2,
                     'z': l.z,
+                    'center': l.center,
                     'location': l.location,
                     'scale': l.scale,
                     'amplitude': l.amplitude,
@@ -183,7 +184,7 @@ def importAnalysis(file, galaxies):
         lines = d['lines']
         for line in lines.copy():
             l = lines[line]
-            g.lines[line] = Line(l['w1'], l['w2'], l['intercept'], l['slope'],
-                    l['location'], l['scale'], l['amplitude'], l['z'])
+            g.lines[line] = Line(l['w1'], l['w2'], l['center'], l['intercept'], l['slope'],
+                    l['location'], l['scale'], l['amplitude'])
             
     return ngal, ngalaxies, galaxies
