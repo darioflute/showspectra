@@ -16,8 +16,8 @@ class Galaxy(object):
         self.ec = np.ones(len(wave))  # initialize to same error
         self.z = 0.  # initialize redshift [from xcorr]
         self.dz = 0.  # initialize redshift error
-        self.ze = 0.  # z from emission lines
-        self.za = 0.  # z from absorption lines
+        self.ze = None  # z from emission lines
+        self.za = None  # z from absorption lines
         self.zTemplate = None  # template with best cross-correlation
         self.spectype = '?' # type (?,star,galaxy,broadAGN,sky)
         self.quality = '?'  # quality ( OK,guess,?)
@@ -68,14 +68,14 @@ class Line(object):
         self.amplitude = amp
         self.intercept = intcpt
         self.slope = slope
-        print('center is: ', self.center)
-        print('location is: ', self.location)
+        # print('center is: ', self.center)
+        # print('location is: ', self.location)
         self.computeAll()
         
     def computeAll(self):
-        self.z = (self.location-self.center)/self.center
-        print('z is ', self.z)
-        w0 = (self.intercept + self.slope * self.location) # * (1 + self.z)
+        self.z = (self.location - self.center) / self.center  # z from the line
+        # print('z is ', self.z)
+        w0 = (self.intercept + self.slope * self.location)  # observed
         self.flux = np.sqrt(2 * np.pi) * np.abs(self.amplitude) * self.scale
-        self.EW = self.flux / w0
-        self.FWHM = 2.35483 * self.scale / (1 + self.z)
+        self.EW = self.flux / w0 / (1. + self.z)  # At rest
+        self.FWHM = 2.35483 * self.scale / (1 + self.z)  # At rest

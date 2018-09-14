@@ -362,13 +362,13 @@ class SpectrumCanvas(MplCanvas):
                 dx = (l.location - x * (1 + z))
                 c = l.intercept + l.slope * l.location
                 dl.append(dx)
-                dls.append(dx / l.scale)
+                dls.append(np.abs(dx) / l.scale)
                 dy.append((y - c) * l.amplitude)
             dl = np.array(dl)
             dls = np.array(dls)
             dy = np.array(dy)
             lines = np.array(lines)
-            idx, = np.where((dl == min(dl)) & (dy > 0) & (dls < 3))
+            idx, = np.where((dl == min(np.abs(dl))) & (dy > 0) & (dls < 3))
             if len(idx) > 0:
                 del self.gal.lines[lines[idx[0]]]
                 self.drawSpectrum()                

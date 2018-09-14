@@ -102,6 +102,9 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
     for i, galaxy in enumerate(galaxies):
         # Define list of lines
         lines = {}
+        # Redshifts
+        zem = []
+        zabs = []
         for line in galaxy.lines.copy():
             l = galaxy.lines[line]
             l.computeAll()
@@ -119,6 +122,10 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
                     'EW': l.EW,
                     'flux': l.flux
                     }
+            if l.amplitude > 0:
+                zem.append(l.z)
+            else:
+                zabs.append(l.z)
         # Find masked regions
         nmask = ~galaxy.c
         if np.sum(nmask) > 0:
@@ -134,10 +141,23 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
             masked = [(i,j) for (i,j) in zip(istart,iend)]
         else:
             masked = []
+        # Compute emission and absorption spectra
+        if len(zem) > 0:
+            zem = np.array(zem)
+            ze = np.nanmean(zem)
+        else:
+            ze = 0.
+        if len(zabs) > 0:
+            zabs = np.array(zabs)
+            za = np.nanmean(zabs)
+        else:
+            za = 0.
         # Define data for the single galaxy
         data[i] = {
                 'z': galaxy.z,
                 'dz': galaxy.dz,
+                'ze': ze,
+                'za': za,
                 'ra': galaxy.ra,
                 'dec': galaxy.dec,
                 'quality': galaxy.quality,
@@ -172,6 +192,14 @@ def importAnalysis(file, galaxies):
         d = data[str(key)]
         g.z = d['z']
         g.dz = d['dz']
+        try:
+            g.za = d['za']
+        except:
+            g.za = None
+        try:
+            g.ze = d['ze']
+        except:
+            g.za = None
         g.quality = d['quality']
         g.spectype = d['spectype']
         try:

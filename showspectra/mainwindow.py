@@ -118,6 +118,10 @@ class GUI (QMainWindow):
         iconpath = self.path0 + '/icons/'
         self.maskAction = self.createAction(iconpath+'mask.png','Mask/unmask spectrum', 'Ctrl+m',
                                             self.maskSpectrum, checkable=True)
+        self.xresizeAction = self.createAction(iconpath+'wresize.png','Resize wavelength',
+                                             'Ctrl+r', self.resizeWavelength)
+        self.zresetAction = self.createAction(iconpath+'zreset.png','Reset redshift',
+                                             'Ctrl+r', self.resetRedshift)
         self.xcorrAction = self.createAction(iconpath+'galaxy.png','Cross-correlate with templates',
                                              'Ctrl+x', self.xcorrSpectrum)
         self.idlineAction = self.createAction(iconpath+'identifyline.png', 'Identify line',
@@ -137,6 +141,8 @@ class GUI (QMainWindow):
         # self.helpAction = self.createAction(iconpath+'help.png', 'Help', 'Ctrl+q', self.onHelp)
         # Add actions
         self.tb.addAction(self.maskAction)
+        self.tb.addAction(self.xresizeAction)
+        self.tb.addAction(self.zresetAction)
         self.tb.addAction(self.xcorrAction)
         self.tb.addAction(self.idlineAction)
         self.tb.addAction(self.guessAction)
@@ -151,6 +157,23 @@ class GUI (QMainWindow):
         act.setShortcut(shortcut)
         act.triggered.connect(action)
         return act
+
+    def resizeWavelength(self):
+        """Resize to full wavelength."""
+        self.sp.gal.limits()
+        self.sp.drawSpectrum()
+        
+    def resetRedshift(self):
+        """Reset redshift."""
+        self.sp.gal.z = 0.0
+        self.sp.gal.dz = 0.0
+        self.sp.zTemplate = None
+        self.sp.gal.quality = '?'
+        if self.sp.gal.spectype != 'sky':
+            self.sp.gal.spectype = '?'
+        self.resizeWavelength()
+        # Save new analysis
+        exportAnalysis(self.galaxies, self.ngal, self.dirname)
 
     def removeFittedLine(self):
         """Program awaits for deleting a line with a click of the mouse."""
