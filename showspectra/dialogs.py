@@ -167,14 +167,14 @@ class selectFiles(QDialog):
 
 class selectRedshift(QDialog):
     """Selection of optimal redshift/template from a list of cross-correlations with templates."""
-    
+
     def __init__(self, z, sz, snr, temps, parent=None):
         super().__init__()
         self.z = z
         self.sz = sz
         self.snr = snr
         self.temps = temps
-        self.zlist = ["z = %.5f +/- %.5f (snr %.1f) %s" % (z, sz, snr, t) for (z, sz, snr, t) \
+        self.zlist = ["z = %.5f +/- %.5f (snr %.1f) %s" % (z, sz, snr, t) for (z, sz, snr, t)
                       in zip(self.z, self.sz, self.snr, self.temps)]
         self.setupUI()
 
@@ -187,7 +187,7 @@ class selectRedshift(QDialog):
         for z in self.zlist:
             item = QListWidgetItem(self.list)
             item.setText(z)
-        self.list.setMaximumSize(QSize(400,100))
+        self.list.setMaximumSize(QSize(400, 100))
         self.button1 = QPushButton("OK")
         self.button1.clicked.connect(self.OK)
         self.button2 = QPushButton("Cancel")
@@ -202,26 +202,26 @@ class selectRedshift(QDialog):
 
     def OK(self):
         self.done(1)
-        
+
     def Cancel(self):
         self.done(0)
 
 
 class selectLine(QDialog):
     """Visual selection of line in the spectrum."""
-    
+
     def __init__(self, w, lines, parent=None):
         super().__init__()
         self.names = []
         self.waves = []
         for line in lines.copy():
-            l = lines[line]
-            self.names.append(l[0])
-            self.waves.append(l[1])
+            lin = lines[line]
+            self.names.append(lin[0])
+            self.waves.append(lin[1])
         self.names = np.array(self.names)
         self.waves = np.array(self.waves)
-        self.z = (w - self.waves)/self.waves
-        self.zlist = ["%s %.5f %.4f" % (n, w, z) for (n ,w, z) \
+        self.z = (w - self.waves) / self.waves
+        self.zlist = ["%s %.5f %.4f" % (n, w, z) for (n, w, z)
                       in zip(self.names, self.waves, self.z)]
         self.setupUI()
 
@@ -234,7 +234,7 @@ class selectLine(QDialog):
         for z in self.zlist:
             item = QListWidgetItem(self.list)
             item.setText(z)
-        self.list.setMaximumSize(QSize(400,100))
+        self.list.setMaximumSize(QSize(400, 100))
         self.button1 = QPushButton("OK")
         self.button1.clicked.connect(self.OK)
         self.button2 = QPushButton("Cancel")
@@ -249,23 +249,23 @@ class selectLine(QDialog):
 
     def OK(self):
         self.done(1)
-        
+
     def Cancel(self):
         self.done(0)
 
 
 class guessParams(QDialog):
     """ Dialog window to define guess parameters of the continuum and lines fit """
-    
+
     def __init__(self, parent=None):
         super().__init__()
         self.setupUI()
 
     def setupUI(self):
-        
-        self.continuum = self.createGroup('Continuum',['Constant','Slope'], default=0)
-        self.emission = self.createGroup('Emission lines',['0','1','2','3'], default=1)
-        self.absorption   = self.createGroup('Absorption lines',['0','1','2','3'], default=0)
+
+        self.continuum = self.createGroup('Continuum', ['Constant', 'Slope'], default=0)
+        self.emission = self.createGroup('Emission lines', ['0', '1', '2', '3'], default=1)
+        self.absorption = self.createGroup('Absorption lines', ['0', '1', '2', '3'], default=0)
 
         hgroup = QGroupBox()
         hbox = QHBoxLayout()
@@ -273,21 +273,20 @@ class guessParams(QDialog):
         self.button1.clicked.connect(self.OK)
         self.button2 = QPushButton("Cancel")
         self.button2.clicked.connect(self.Cancel)
-        hbox.addWidget(self.button1) 
+        hbox.addWidget(self.button1)
         hbox.addWidget(self.button2)
         hgroup.setLayout(hbox)
-        
         grid = QGridLayout()
-        grid.addWidget(self.continuum,0,0)
-        grid.addWidget(self.emission,1,0)
-        grid.addWidget(self.absorption,2,0)
+        grid.addWidget(self.continuum, 0, 0)
+        grid.addWidget(self.emission, 1, 0)
+        grid.addWidget(self.absorption, 2, 0)
         grid.addWidget(hgroup, 3, 0)
         self.setLayout(grid)
         self.setWindowTitle('Guess parameters')
-        self.resize(400,300)
+        self.resize(400, 300)
 
-    def createGroup(self, title, items, default=0):    
-        """ creates a group of radio buttons  """
+    def createGroup(self, title, items, default=0):
+        """Creates a group of radio buttons."""
         group = QGroupBox(title)
         group.buttons = QButtonGroup()
         hbox = QHBoxLayout()
@@ -304,7 +303,6 @@ class guessParams(QDialog):
         group.setLayout(hbox)
         return group
 
-
     def OK(self):
         self.done(1)
 
@@ -313,7 +311,6 @@ class guessParams(QDialog):
         emission = self.emission.buttons.checkedButton().text()
         absorption = self.absorption.buttons.checkedButton().text()
         return continuum, emission, absorption
-            
+
     def Cancel(self):
         self.done(0)
-

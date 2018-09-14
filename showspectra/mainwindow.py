@@ -39,7 +39,6 @@ class GUI (QMainWindow):
             self.setStyleSheet(fh.read())
         # Start UI
         self.initUI()
-                
 
     def initUI(self):
         """User interface."""
@@ -74,13 +73,16 @@ class GUI (QMainWindow):
         # File import/save
         bar = self.menuBar()
         file = bar.addMenu("File")
-        file.addAction(QAction("Select telescope", self, shortcut='Ctrl+T', triggered=self.selTelescope))
+        file.addAction(QAction("Select telescope", self, shortcut='Ctrl+T',
+                               triggered=self.selTelescope))
         file.addAction(QAction("Open fits files", self, shortcut='Ctrl+o', triggered=self.fileOpen))
         file.addAction(QAction("Quit", self, shortcut='Ctrl+q', triggered=self.fileQuit))
-        # Tools 
+        # Tools
         tools = bar.addMenu("Tools")
-        tools.addAction(QAction("Mask/unmask", self, shortcut='Ctrl+m', triggered=self.maskSpectrum))
-        tools.addAction(QAction("Cross-correlate", self, shortcut='Ctrl+x', triggered=self.xcorrSpectrum))
+        tools.addAction(QAction("Mask/unmask", self, shortcut='Ctrl+m',
+                                triggered=self.maskSpectrum))
+        tools.addAction(QAction("Cross-correlate", self, shortcut='Ctrl+x',
+                                triggered=self.xcorrSpectrum))
         # Help
         # help = bar.addMenu("Help")
         bar.setNativeMenuBar(False)
@@ -116,27 +118,28 @@ class GUI (QMainWindow):
         self.tb.setObjectName('toolbar')
         # Actions
         iconpath = self.path0 + '/icons/'
-        self.maskAction = self.createAction(iconpath+'mask.png','Mask/unmask spectrum', 'Ctrl+m',
+        self.maskAction = self.createAction(iconpath + 'mask.png', 'Mask/unmask spectrum', 'Ctrl+m',
                                             self.maskSpectrum, checkable=True)
-        self.xresizeAction = self.createAction(iconpath+'wresize.png','Resize wavelength',
-                                             'Ctrl+r', self.resizeWavelength)
-        self.zresetAction = self.createAction(iconpath+'zreset.png','Reset redshift',
-                                             'Ctrl+r', self.resetRedshift)
-        self.xcorrAction = self.createAction(iconpath+'galaxy.png','Cross-correlate with templates',
+        self.xresizeAction = self.createAction(iconpath + 'wresize.png', 'Resize wavelength',
+                                               'Ctrl+r', self.resizeWavelength)
+        self.zresetAction = self.createAction(iconpath + 'zreset.png', 'Reset redshift',
+                                              'Ctrl+r', self.resetRedshift)
+        self.xcorrAction = self.createAction(iconpath + 'galaxy.png',
+                                             'Cross-correlate with templates',
                                              'Ctrl+x', self.xcorrSpectrum)
-        self.idlineAction = self.createAction(iconpath+'identifyline.png', 'Identify line',
-                                           'Ctrl+l', self.identifyLine)
-        self.guessAction = self.createAction(iconpath+'guess.png', 'Guess continuum and lines',
+        self.idlineAction = self.createAction(iconpath + 'identifyline.png', 'Identify line',
+                                              'Ctrl+l', self.identifyLine)
+        self.guessAction = self.createAction(iconpath + 'guess.png', 'Guess continuum and lines',
                                              'Ctrl+g', self.guessSpectrum)
-        self.fitAction = self.createAction(iconpath+'fitline.png', 'Fit continuum and lines',
+        self.fitAction = self.createAction(iconpath + 'fitline.png', 'Fit continuum and lines',
                                            'Ctrl+f', self.fitSpectrum)
-        self.removeAction = self.createAction(iconpath+'remove.png', 'Remove fitted line',
-                                           'Ctrl+r', self.removeFittedLine)
-        self.openAction = self.createAction(iconpath+'open.png', 'Open files', 'Ctrl+o',
+        self.removeAction = self.createAction(iconpath + 'remove.png', 'Remove fitted line',
+                                              'Ctrl+r', self.removeFittedLine)
+        self.openAction = self.createAction(iconpath + 'open.png', 'Open files', 'Ctrl+o',
                                             self.fileOpen)
-        self.teleAction = self.createAction(iconpath+'telescope.png', 'Select telescope', 'Ctrl+T',
-                                            self.selTelescope)
-        self.quitAction = self.createAction(iconpath+'exit.png',
+        self.teleAction = self.createAction(iconpath + 'telescope.png', 'Select telescope',
+                                            'Ctrl+T', self.selTelescope)
+        self.quitAction = self.createAction(iconpath + 'exit.png',
                                             'Quit program', 'Ctrl+q', self.fileQuit)
         # self.helpAction = self.createAction(iconpath+'help.png', 'Help', 'Ctrl+q', self.onHelp)
         # Add actions
@@ -162,7 +165,7 @@ class GUI (QMainWindow):
         """Resize to full wavelength."""
         self.sp.gal.limits()
         self.sp.drawSpectrum()
-        
+
     def resetRedshift(self):
         """Reset redshift."""
         self.sp.gal.z = 0.0
@@ -212,7 +215,7 @@ class GUI (QMainWindow):
         except BaseException:
             print('No spectrum defined')
             pass
-        
+
     def maskOtherSpectra(self, message):
         """Spread to the other spectra the action on one spectrum."""
         indmin = self.sp.masklimits[0]
@@ -225,9 +228,9 @@ class GUI (QMainWindow):
                 galaxy.c[indmin:indmax] = 1
         # Export the new analysis - to save stuff in case of crash
         exportAnalysis(self.galaxies, self.ngal, self.dirname)
-        
+
     def xcorrSpectrum(self):
-        """Cross-correlate a spectrum with SDSS templates."""   
+        """Cross-correlate a spectrum with SDSS templates."""
         self.sp.showTemplate = True
         xc = cross_correlation(self)
         if xc == 1:
@@ -246,7 +249,7 @@ class GUI (QMainWindow):
             self.sb.showMessage(message, 10000)
             print(message)
             return
-        
+
         self.GP = guessParams()
         if self.GP.exec_() == QDialog.Accepted:
             if self.sp.showLines:
@@ -271,17 +274,18 @@ class GUI (QMainWindow):
             self.CS = SegmentsSelector(self.sp.axes, self.sp.fig, self.onContinuumSelect,
                                        zD=self.zeroDeg)
         else:
-            return        
-        
+            return
+
     def onContinuumSelect(self, verts):
         # Order the x coordinates of the verts
         x, y = zip(*verts)
-        x = np.array(x); y = np.array(y)
+        x = np.array(x)
+        y = np.array(y)
         # Order increasing if wavelength, decreasing if frequency
         idx = np.argsort(x)
         x = x[idx]
         y = y[idx]
-        verts = [(i,j) for (i,j) in zip(x,y)]
+        verts = [(i, j) for (i, j) in zip(x, y)]
         SI = SegmentsInteractor(self.sp.axes, verts, self.zeroDeg)
         SI.modSignal.connect(self.onModifiedGuess)
         SI.mySignal.connect(self.onRemoveContinuum)
@@ -301,7 +305,6 @@ class GUI (QMainWindow):
             self.sp.leg.get_texts()[3].set_alpha(1.0)
             self.sp.leg.get_lines()[3].set_alpha(1.0)
 
-       
     def addLines(self, n, x, type):
         lines = []
         for i in range(n):
@@ -319,7 +322,6 @@ class GUI (QMainWindow):
             LI.mySignal.connect(self.onRemoveContinuum)
             lines.append(LI)
         return lines
-        
 
     def onModifiedGuess(self, event):
         """Reacts to modifications of the guess."""
@@ -344,7 +346,7 @@ class GUI (QMainWindow):
 
     def onRemoveContinuum(self, event):
         if event == 'segments deleted':
-            self.sp.guess.disconnect()  
+            self.sp.guess.disconnect()
             self.sp.guess = None
             self.sp.fig.canvas.draw_idle()
         elif event == 'line deleted':
@@ -355,7 +357,7 @@ class GUI (QMainWindow):
             self.sp.ablines = []
             self.sp.fig.canvas.draw_idle()
         elif event == 'all':
-            self.sp.guess.disconnect()  
+            self.sp.guess.disconnect()
             self.sp.guess = None
             for line in self.sp.emlines + self.sp.ablines:
                 line.disconnect()
@@ -363,7 +365,6 @@ class GUI (QMainWindow):
             self.sp.emlines = []
             self.sp.ablines = []
             self.sp.fig.canvas.draw_idle()
-            
 
     def fitSpectrum(self):
         """Fit defined guess."""
@@ -372,7 +373,7 @@ class GUI (QMainWindow):
         intercept, slope = fitContinuum(self.sp)
         linefitpars = fitLines(self.sp, intercept, slope)
         z = self.sp.gal.z
-        xg,yg = zip(*self.sp.guess.xy)
+        xg, yg = zip(*self.sp.guess.xy)
         xg = np.array(xg) * (1. + self.sp.gal.z)
         LinesNames = list(self.sp.Lines.keys())
         LinesCenters = [list(self.sp.Lines.values())[i][1] for i in range(len(LinesNames))]
@@ -384,7 +385,7 @@ class GUI (QMainWindow):
             idx, = np.where(dl == min(dl))
             if len(idx) > 1:
                 if amp > 0:
-                    linename = LinesNames[idx[0]] # Emission
+                    linename = LinesNames[idx[0]]  # Emission
                 else:
                     linename = LinesNames[idx[1]]  # Absorption
             else:
@@ -423,13 +424,14 @@ class GUI (QMainWindow):
             print('Opening ', sky)
             self.sky = getSky(sky)
             # Recover previous analysis
-            #if (os.path.exists(self.dirname + '/showspectra.fits')):
+            # if (os.path.exists(self.dirname + '/showspectra.fits')):
             #    print("Recovering previous analysis ...")
             #    recoverAnalysis(self)
             if (os.path.exists(self.dirname + '/showspectra.json')):
                 print("Recovering previous analysis ...")
                 analysisFile = self.dirname + '/showspectra.json'
-                self.ngal, self.ngalaxies, self.galaxies = importAnalysis(analysisFile, self.galaxies)
+                self.ngal, self.ngalaxies, self.galaxies = importAnalysis(analysisFile,
+                                                                          self.galaxies)
             else:
                 self.ngal = 0
                 self.ngalaxies = len(self.galaxies)

@@ -3,9 +3,11 @@ from lmfit import Parameters, minimize
 from scipy.ndimage.filters import median_filter
 from showspectra.dialogs import selectRedshift
 
+
 def MAD(data, axis=None):
     """Median of absolute deviations."""
     return np.nanmedian(np.absolute(data - np.nanmedian(data, axis)), axis)
+
 
 def gaussResiduals(p, x, data=None):
     v = p.valuesdict()
@@ -190,6 +192,5 @@ def cross_correlation(self):
             return 1
         else:
             return 0
-            
     else:
         print("No template fits the data")

@@ -1,5 +1,6 @@
 from astropy.io import fits
 import numpy as np
+import json
 
 
 def saveAnalysis(self):
@@ -77,7 +78,6 @@ def recoverAnalysis(self):
     hdulist.close()
 
 
-import json
 class MyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -89,16 +89,16 @@ class MyEncoder(json.JSONEncoder):
         else:
             return super(MyEncoder, self).default(obj)
 
+
 def exportAnalysis(galaxies, ngal, dirname, name=None):
     """Export results of analysis."""
-    import json, io  
+    import io
     from collections import OrderedDict
-    data = OrderedDict([
-            ('ngal', ngal),
-            ('ngalaxies', len(galaxies)),
-            ('waveUnit', 'micrometer'),
-            ('fluxUnit', 'Jy')
-            ])
+    data = OrderedDict([('ngal', ngal),
+                        ('ngalaxies', len(galaxies)),
+                        ('waveUnit', 'Angstrom'),
+                        ('fluxUnit', 'W/m2/Hz')
+                        ])
     for i, galaxy in enumerate(galaxies):
         # Define list of lines
         lines = {}
@@ -106,26 +106,25 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
         zem = []
         zabs = []
         for line in galaxy.lines.copy():
-            l = galaxy.lines[line]
-            l.computeAll()
-            lines[line] = {
-                    'w1': l.w1,
-                    'w2': l.w2,
-                    'z': l.z,
-                    'center': l.center,
-                    'location': l.location,
-                    'scale': l.scale,
-                    'amplitude': l.amplitude,
-                    'intercept': l.intercept,
-                    'slope': l.slope,
-                    'FWHM': l.FWHM,
-                    'EW': l.EW,
-                    'flux': l.flux
-                    }
-            if l.amplitude > 0:
-                zem.append(l.z)
+            li = galaxy.lines[line]
+            li.computeAll()
+            lines[line] = {'w1': li.w1,
+                           'w2': li.w2,
+                           'z': li.z,
+                           'center': li.center,
+                           'location': li.location,
+                           'scale': li.scale,
+                           'amplitude': li.amplitude,
+                           'intercept': li.intercept,
+                           'slope': li.slope,
+                           'FWHM': li.FWHM,
+                           'EW': li.EW,
+                           'flux': li.flux
+                           }
+            if li.amplitude > 0:
+                zem.append(li.z)
             else:
-                zabs.append(l.z)
+                zabs.append(li.z)
         # Find masked regions
         nmask = ~galaxy.c
         if np.sum(nmask) > 0:
@@ -138,7 +137,7 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
             iend = np.where(dc == 1)
             istart = np.ravel(istart)
             iend = np.ravel(iend)
-            masked = [(i,j) for (i,j) in zip(istart,iend)]
+            masked = [(i, j) for (i, j) in zip(istart, iend)]
         else:
             masked = []
         # Compute emission and absorption spectra
@@ -153,36 +152,34 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
         else:
             za = 0.
         # Define data for the single galaxy
-        data[i] = {
-                'z': galaxy.z,
-                'dz': galaxy.dz,
-                'ze': ze,
-                'za': za,
-                'ra': galaxy.ra,
-                'dec': galaxy.dec,
-                'quality': galaxy.quality,
-                'spectype': galaxy.spectype,
-                'template': galaxy.zTemplate,
-                'aperture': galaxy.aperture,
-                'fiber': galaxy.fiber,
-                'lines': lines,
-                'masked': masked
-                }
-        data.move_to_end(i, last=True) # Move element to the end
-    with io.open(dirname+'/showspectra.json', mode='w') as f:
-            str_= json.dumps(data, indent=2, separators=(',',': '),
-                             ensure_ascii=False, cls=MyEncoder)
+        data[i] = {'z': galaxy.z,
+                   'dz': galaxy.dz,
+                   'ze': ze,
+                   'za': za,
+                   'ra': galaxy.ra,
+                   'dec': galaxy.dec,
+                   'quality': galaxy.quality,
+                   'spectype': galaxy.spectype,
+                   'template': galaxy.zTemplate,
+                   'aperture': galaxy.aperture,
+                   'fiber': galaxy.fiber,
+                   'lines': lines,
+                   'masked': masked
+                   }
+        data.move_to_end(i, last=True)  # Move element to the end
+    with io.open(dirname + '/showspectra.json', mode='w') as f:
+            str_ = json.dumps(data, indent=2, separators=(',', ':'),
+                              ensure_ascii=False, cls=MyEncoder)
             f.write(str_)
+
 
 def importAnalysis(file, galaxies):
     """Import results from previous analysis."""
     import json
     from collections import OrderedDict
     from showspectra.spectra import Line
-    
     with open(file) as f:
         data = json.load(f, object_pairs_hook=OrderedDict)
-    
     ngal = data['ngal']
     ngalaxies = data['ngalaxies']
     print('total galaxies: ', ngalaxies)
@@ -194,25 +191,24 @@ def importAnalysis(file, galaxies):
         g.dz = d['dz']
         try:
             g.za = d['za']
-        except:
+        except BaseException:
             g.za = None
         try:
             g.ze = d['ze']
-        except:
+        except BaseException:
             g.za = None
         g.quality = d['quality']
         g.spectype = d['spectype']
         try:
             g.zTemplate = d['template']
-        except:
+        except BaseException:
             g.zTemplate = None
         masks = d['masked']
         for mask in masks:
             g.c[mask[0]:mask[1]] = 0
         lines = d['lines']
         for line in lines.copy():
-            l = lines[line]
-            g.lines[line] = Line(l['w1'], l['w2'], l['center'], l['intercept'], l['slope'],
-                    l['location'], l['scale'], l['amplitude'])
-            
+            li = lines[line]
+            g.lines[line] = Line(li['w1'], li['w2'], li['center'], li['intercept'], li['slope'],
+                                 li['location'], li['scale'], li['amplitude'])
     return ngal, ngalaxies, galaxies

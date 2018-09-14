@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def define_lines():
     import collections
     alpha = u'\u03B1'
@@ -47,54 +48,57 @@ def define_lines():
         ('A:H-alpha 6564', ['A:H' + alpha, 6564.61])
     ])
 
-def contResiduals(p,x,data=None,eps=None):
+
+def contResiduals(p, x, data=None, eps=None):
     # unpack parameters:
     #  extract .value attribute for each parameter
     v = p.valuesdict()
     intcp = v['intercept']
-    slope = v['slope']    
-    model = intcp+slope*x
+    slope = v['slope']
+    model = intcp + slope * x
     if data is None:
         return model
     else:
         if eps is None:
             return (model - data)
         else:
-            return (model - data)/eps
+            return (model - data) / eps
 
-def linesResiduals(p,x,data=None,eps=None):
+
+def linesResiduals(p, x, data=None, eps=None):
     # unpack parameters:
-    #  extract .value attribute for each parameter
+    # extract .value attribute for each parameter
     v = p.valuesdict()
     model = 0
-    n = len(v)//3
+    n = len(v) // 3
     for i in range(n):
-        li = 'l'+str(i)+'_'
-        lc = v[li+'center']
-        la = v[li+'amplitude']
-        ls = v[li+'sigma']
-        model += la/(np.sqrt(2*np.pi)*ls)*np.exp(-(x-lc)*(x-lc)*0.5/(ls*ls))
+        li = 'l' + str(i) + '_'
+        lc = v[li + 'center']
+        la = v[li + 'amplitude']
+        ls = v[li + 'sigma']
+        model += la / (np.sqrt(2 * np.pi) * ls) * np.exp(-(x - lc) * (x - lc) * 0.5 / (ls * ls))
     if data is None:
         return model
     else:
         if eps is None:
             return (model - data)
         else:
-            return (model - data)/eps
+            return (model - data) / eps
+
 
 def fitContinuum(sp):
     """Fit the continuum defined in the guess."""
     from lmfit import Parameters, minimize
     slope = sp.guess.slope
     intcpt = sp.guess.intcpt
-    xg,yg = zip(*sp.guess.xy)
+    xg, yg = zip(*sp.guess.xy)
     xg = np.array(xg)
     xg *= 1. + sp.gal.z
     wc = sp.gal.wc
     fc = sp.gal.fc
     ec = sp.gal.ec
     c = sp.gal.c
-    idx = np.where(((wc > xg[0]) & (wc < xg[1]) & c==1) | ((wc > xg[2]) & (wc < xg[3]) & c==1))
+    idx = np.where(((wc > xg[0]) & (wc < xg[1]) & c == 1) | ((wc > xg[2]) & (wc < xg[3]) & c == 1))
     x = wc[idx]
     y = fc[idx]
     e = ec[idx]
@@ -103,11 +107,12 @@ def fitContinuum(sp):
     fit_params.add('intercept', value=intcpt)
     fit_params.add('slope', value=slope)
     # out = minimize(contResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='leastsq')
-    out = minimize(contResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='Nelder')
-    par = out.params.valuesdict() 
+    out = minimize(contResiduals, fit_params, args=(x,), kws={'data': y, 'eps': e}, method='Nelder')
+    par = out.params.valuesdict()
     return par['intercept'], par['slope']
 
-def fitLines(sp,intercept,slope):
+
+def fitLines(sp, intercept, slope):
     """Fit the lines defined in the guess."""
     from lmfit import Parameters, minimize
     # Select the input values for the fit
@@ -116,10 +121,10 @@ def fitLines(sp,intercept,slope):
     fc = sp.gal.fc
     ec = sp.gal.ec
     c = sp.gal.c
-    xg,yg = zip(*sp.guess.xy)
+    xg, yg = zip(*sp.guess.xy)
     xg = np.array(xg)
     xg *= (1. + z)  # Back to observed
-    idx = np.where((wc > xg[0]) & (wc < xg[3]) & c==1)
+    idx = np.where((wc > xg[0]) & (wc < xg[3]) & c == 1)
     x = wc[idx]
     y = fc[idx]
     e = ec[idx]
@@ -127,37 +132,37 @@ def fitLines(sp,intercept,slope):
     y -= continuum
     # Normalization
     norm = np.abs(np.median(continuum))
-    print('Normalization factor ',norm)
+    print('Normalization factor ', norm)
     y /= norm
     e /= norm
     # Define the model
     fit_params = Parameters()
     # Define lines
-    for i,line in enumerate(sp.emlines+sp.ablines):
-        li = 'l'+str(i)+'_'
+    for i, line in enumerate(sp.emlines + sp.ablines):
+        li = 'l' + str(i) + '_'
         x0 = line.x0 * (1. + z)
-        fit_params.add(li+'center', value=x0, min=(x0-10), max=(x0+10))
-        A = line.A/norm
+        fit_params.add(li + 'center', value=x0, min=(x0 - 10), max=(x0 + 10))
+        A = line.A / norm
         print('amplitude ', A)
         if A > 0:
-            fit_params.add(li+'amplitude', value=A, min=0.1*A, max=A*10)
+            fit_params.add(li + 'amplitude', value=A, min=0.1 * A, max=A * 10)
         else:
-            fit_params.add(li+'amplitude', value=A, max=0.1*A, min=A*10)
-        sigma = line.fwhm/2.355 * (1. + z)
-        fit_params.add(li+'sigma', value=sigma, min=sigma/2., max=sigma*2)
+            fit_params.add(li + 'amplitude', value=A, max=0.1 * A, min=A * 10)
+        sigma = line.fwhm / 2.355 * (1. + z)
+        fit_params.add(li + 'sigma', value=sigma, min=sigma / 2., max=sigma * 2)
     # Minimize
     # out = minimize(linesResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='leastsq')
-    out = minimize(linesResiduals, fit_params, args=(x,), kws={'data':y,'eps':e},method='Nelder')            
+    out = minimize(linesResiduals, fit_params, args=(x,),
+                   kws={'data': y, 'eps': e}, method='Nelder')
     # Return lines fitted parameters
     pars = out.params.valuesdict()
-    nlines = len(pars)//3
-    print ("Number of lines fitted: ", nlines)
+    nlines = len(pars) // 3
+    print("Number of lines fitted: ", nlines)
     linepars = []
     for i in range(nlines):
-        li = 'l'+str(i)+'_'
-        center = pars[li+'center']  # Observed
-        sigma = pars[li+'sigma']    # Observed
-        amplitude = pars[li+'amplitude']*norm/(np.sqrt(2*np.pi)*sigma)
+        li = 'l' + str(i) + '_'
+        center = pars[li + 'center']  # Observed
+        sigma = pars[li + 'sigma']    # Observed
+        amplitude = pars[li + 'amplitude'] * norm / (np.sqrt(2 * np.pi) * sigma)
         linepars.append([center, amplitude, sigma])
     return linepars
-    

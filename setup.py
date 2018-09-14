@@ -16,7 +16,8 @@ config = {
     'packages': ['showspectra'],
     'scripts': ['bin/showspectra'],
     'include_package_data': True,
-    'package_data': {'showspectra': ['icons/*.png', 'icons/*.gif', 'stylesheet.css','Templates/*.fit.gz']}
+    'package_data': {'showspectra': ['icons/*.png', 'icons/*.gif',
+                                     'stylesheet.css', 'Templates/*.fit.gz']}
 }
 
 setup(**config)
