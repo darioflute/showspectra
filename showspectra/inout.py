@@ -182,10 +182,10 @@ def importAnalysis(file, galaxies):
         data = json.load(f, object_pairs_hook=OrderedDict)
     ngal = data['ngal']
     ngalaxies = data['ngalaxies']
-    print('total galaxies: ', ngalaxies)
+    # print('total galaxies: ', ngalaxies)
     for key in range(ngalaxies):
-        # print('galaxy no: ', key)
         g = galaxies[key]
+        # print('galaxy no: ', key, np.size(g.c))
         d = data[str(key)]
         g.z = d['z']
         g.dz = d['dz']
@@ -205,7 +205,9 @@ def importAnalysis(file, galaxies):
             g.zTemplate = None
         masks = d['masked']
         for mask in masks:
-            g.c[mask[0]:mask[1]] = 0
+            g.c[mask[0]:mask[1]+1] = 0
+            if mask[1] == np.size(g.c):
+                g.c[-1] = 0
         lines = d['lines']
         for line in lines.copy():
             li = lines[line]
