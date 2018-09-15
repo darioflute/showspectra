@@ -340,6 +340,9 @@ class SpectrumCanvas(MplCanvas):
         self.selectZ = selectLine(w, self.Lines)
         self.selectZ.list.currentRowChanged.connect(self.updateRedshift)
         if self.selectZ.exec_() == 1:
+            self.gal.quality = 'Manual'
+            self.gal.spectype = 'Galaxy'
+            self.updateQualityAnnotation()
             return 1
         else:
             self.gal.z = zold
@@ -687,7 +690,7 @@ class SpectrumCanvas(MplCanvas):
             return None
 
     def getQual(self, q):
-        items = ['OK', 'Guess', '?']
+        items = ['XCorr', 'Manual', 'Guess', '?']
         qnew, okPressed = QInputDialog.getItem(self, "Quality", "Q", items, 0, False)
         if okPressed:
             return qnew

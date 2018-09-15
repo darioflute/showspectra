@@ -234,7 +234,7 @@ class GUI (QMainWindow):
         self.sp.showTemplate = True
         xc = cross_correlation(self)
         if xc == 1:
-            self.sp.gal.quality = 'OK'
+            self.sp.gal.quality = 'XCorr'
             self.sp.gal.spectype = 'Galaxy'
             self.sp.updateQualityAnnotation()
             # Export the new analysis - to save stuff in case of crash
