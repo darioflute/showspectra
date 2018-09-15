@@ -280,12 +280,15 @@ class SpectrumCanvas(MplCanvas):
                 dc = c[1:] - c[:-1]
                 istart = np.where(dc == -1)
                 if c[0] == 0:
-                    istart = np.append(0, istart)
+                    istart = np.append(-1, istart)
                 iend = np.where(dc == 1)
-                istart = np.ravel(istart)
-                iend = np.ravel(iend)
+                istart = np.ravel(istart) + 1
+                iend = np.ravel(iend) + 1
                 self.axrectangles = []
+                nw = np.size(self.wave) - 1
                 for ist, ien in zip(istart, iend):
+                    if ien > nw:
+                        ien = nw
                     axrectangle = self.axes.axvspan(self.wave[ist], self.wave[ien],
                                                     facecolor='LightYellow',
                                                     alpha=1, linewidth=0, zorder=1)

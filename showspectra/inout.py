@@ -133,10 +133,10 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
             dc = c[1:] - c[:-1]
             istart = np.where(dc == -1)
             if c[0] == 0:
-                istart = np.append(0, istart)
+                istart = np.append(-1, istart)
             iend = np.where(dc == 1)
-            istart = np.ravel(istart)
-            iend = np.ravel(iend)
+            istart = np.ravel(istart) + 1
+            iend = np.ravel(iend) + 1
             masked = [(i, j) for (i, j) in zip(istart, iend)]
         else:
             masked = []
@@ -205,9 +205,10 @@ def importAnalysis(file, galaxies):
             g.zTemplate = None
         masks = d['masked']
         for mask in masks:
-            g.c[mask[0]:mask[1]+1] = 0
             if mask[1] == np.size(g.c):
-                g.c[-1] = 0
+                g.c[mask[0]:] = 0
+            else:
+                g.c[mask[0]:mask[1]] = 0
         lines = d['lines']
         for line in lines.copy():
             li = lines[line]
