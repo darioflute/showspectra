@@ -36,9 +36,9 @@ def readTemplates(self):
     self.LateTypeGalaxy = readSdssTemplate(path + 'spDR2-027.fit.gz')
     self.LumRedGalaxy = readSdssTemplate(path + 'spDR2-028.fit.gz')
     self.QSO = readSdssTemplate(path + 'spDR2-029.fit.gz')
-    #        self.BALQSO1 = readSdssTemplate(path+'spDR2-030.fit')
-    #        self.BALQSO2 = readSdssTemplate(path+'spDR2-031.fit')
-    #        self.HighLumQSO = readSdssTemplate(path+'spDR2-032.fit')
+    #        self.BALQSO1 = readSdssTemplate(path+'spDR2-030.fit.gz')
+    #        self.BALQSO2 = readSdssTemplate(path+'spDR2-031.fit.gz')
+    self.HighLumQSO = readSdssTemplate(path+'spDR2-032.fit.gz')
 
     self.templates = collections.OrderedDict()
     self.templates['EarlyTypeGalaxy'] = self.EarlyTypeGalaxy
@@ -47,7 +47,7 @@ def readTemplates(self):
     self.templates['Galaxy1'] = self.Galaxy1
     self.templates['Galaxy2'] = self.Galaxy2
     self.templates['Galaxy3'] = self.Galaxy3
-    #        self.templates['QSO'] = self.QSO
+    self.templates['QSO'] = self.QSO
     #        self.templates['BALQSO1'] = self.BALQSO1
     #        self.templates['BALQSO2'] = self.BALQSO2
-    #        self.templates['HighLumQSO'] = self.HighLumQSO
+    self.templates['HighLumQSO'] = self.HighLumQSO

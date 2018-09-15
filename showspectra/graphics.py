@@ -111,6 +111,7 @@ class SpectrumCanvas(MplCanvas):
             self.modifyGuess = False
             self.removeFittedLine = False
             self.identifyLine = False
+            self.maskGlitch = False
             # Plot spectrum
             self.drawSpectrum()
             # Start the span selector
@@ -494,12 +495,18 @@ class SpectrumCanvas(MplCanvas):
             # Unmask
             self.gal.c[indmin:indmax] = 1
             self.masklimits = [indmin, indmax]
-            self.maskSignal.emit('unmask')
+            if self.maskGlitch == False:
+                self.maskSignal.emit('unmask')
+            else:
+                self.maskGlitch = False
         else:
             # Mask
             self.gal.c[indmin:indmax] = 0
             self.masklimits = [indmin, indmax]
-            self.maskSignal.emit('mask')
+            if self.maskGlitch == False:
+                self.maskSignal.emit('mask')
+            else:
+                self.maskGlitch = False
             # Plot rectangle
             # self.axes.axvspan(xmin, xmax, facecolor='LightYellow', alpha=1, linewidth=0, zorder=1)
         # Modify y limits only

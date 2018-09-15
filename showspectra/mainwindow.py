@@ -79,8 +79,10 @@ class GUI (QMainWindow):
         file.addAction(QAction("Quit", self, shortcut='Ctrl+q', triggered=self.fileQuit))
         # Tools
         tools = bar.addMenu("Tools")
-        tools.addAction(QAction("Mask/unmask", self, shortcut='Ctrl+m',
+        tools.addAction(QAction("Mask/unmask sky", self, shortcut='Ctrl+m',
                                 triggered=self.maskSpectrum))
+        tools.addAction(QAction("Mask/unmask glitch", self, shortcut='Ctrl+g',
+                                triggered=self.maskGlitch))
         tools.addAction(QAction("Cross-correlate", self, shortcut='Ctrl+x',
                                 triggered=self.xcorrSpectrum))
         # Help
@@ -118,8 +120,10 @@ class GUI (QMainWindow):
         self.tb.setObjectName('toolbar')
         # Actions
         iconpath = self.path0 + '/icons/'
-        self.maskAction = self.createAction(iconpath + 'mask.png', 'Mask/unmask spectrum', 'Ctrl+m',
+        self.maskAction = self.createAction(iconpath + 'masksky.png', 'Mask/unmask sky features', 'Ctrl+m',
                                             self.maskSpectrum, checkable=True)
+        self.glitchAction = self.createAction(iconpath + 'maskglitch.png', 'Mask/unmask glitch', 'Ctrl+g',
+                                            self.maskGlitch, checkable=True)
         self.xresizeAction = self.createAction(iconpath + 'wresize.png', 'Resize wavelength',
                                                'Ctrl+r', self.resizeWavelength)
         self.zresetAction = self.createAction(iconpath + 'zreset.png', 'Reset redshift',
@@ -144,6 +148,7 @@ class GUI (QMainWindow):
         # self.helpAction = self.createAction(iconpath+'help.png', 'Help', 'Ctrl+q', self.onHelp)
         # Add actions
         self.tb.addAction(self.maskAction)
+        self.tb.addAction(self.glitchAction)
         self.tb.addAction(self.xresizeAction)
         self.tb.addAction(self.zresetAction)
         self.tb.addAction(self.xcorrAction)
@@ -191,13 +196,15 @@ class GUI (QMainWindow):
         exportAnalysis(self.galaxies, self.ngal, self.dirname)
         self.close()
 
-    def maskSpectrum(self):
+    def maskSpectrum(self, glitch=False):
         """Mask spectrum mode."""
         try:
             self.sp.span.active ^= True
             self.sp.changeVisibility('Lines')
             self.sp.draw_idle()
             if self.sp.span.active:
+                if glitch:
+                    self.sp.maskGlitch = True
                 if self.sp.showLines:
                     self.sp.changeVisibility('Lines')
                 self.sp.showMask = True
@@ -207,6 +214,7 @@ class GUI (QMainWindow):
                 self.sp.leg.get_texts()[3].set_alpha(0.3)
                 self.sp.leg.get_lines()[3].set_alpha(0.3)
             else:
+                self.sp.maskGlitch = False
                 if not self.sp.showLines:
                     self.sp.changeVisibility('Lines')
                 self.sp.leg.get_texts()[3].set_alpha(1.0)
@@ -215,6 +223,9 @@ class GUI (QMainWindow):
         except BaseException:
             print('No spectrum defined')
             pass
+        
+    def maskGlitch(self):
+        self.maskSpectrum(glitch=True)
 
     def maskOtherSpectra(self, message):
         """Spread to the other spectra the action on one spectrum."""
