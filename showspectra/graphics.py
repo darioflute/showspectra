@@ -52,9 +52,6 @@ class SpectrumCanvas(MplCanvas):
 
     def __init__(self, *args, **kwargs):
         MplCanvas.__init__(self, *args, **kwargs)
-        # Import lines
-        from showspectra.lines import define_lines
-        self.Lines = define_lines()
         # Display defaults
         self.xlimits = None
         self.ylimits = None
@@ -82,6 +79,9 @@ class SpectrumCanvas(MplCanvas):
                 pass
 
             self.parent = parent
+            # Import lines for selected telescope/instrument
+            from showspectra.lines import define_lines
+            self.Lines = define_lines(parent.telescope)
             # Define figure
             self.fig.set_edgecolor('none')
             self.axes = self.fig.add_axes([0.04, 0.10, .85, .78], label='mainax')

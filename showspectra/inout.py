@@ -110,16 +110,16 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
             li.computeAll()
             lines[line] = {'w1': li.w1,
                            'w2': li.w2,
-                           'z': li.z,
+                           'z': [li.z, li.eZ],
                            'center': li.center,
-                           'location': li.location,
-                           'scale': li.scale,
-                           'amplitude': li.amplitude,
-                           'intercept': li.intercept,
-                           'slope': li.slope,
-                           'FWHM': li.FWHM,
-                           'EW': li.EW,
-                           'flux': li.flux
+                           'location': [li.location, li.eLocation],
+                           'scale': [li.scale, li.eScale],
+                           'amplitude': [li.amplitude, li.eAmplitude],
+                           'intercept': [li.intercept, li.eIntercept],
+                           'slope': [li.slope, li.eSlope],
+                           'FWHM': [li.FWHM, li.eFWHM],
+                           'EW': [li.EW, li.eEW],
+                           'flux': [li.flux, li.eFlux]
                            }
             if li.amplitude > 0:
                 zem.append(li.z)
@@ -212,6 +212,10 @@ def importAnalysis(file, galaxies):
         lines = d['lines']
         for line in lines.copy():
             li = lines[line]
-            g.lines[line] = Line(li['w1'], li['w2'], li['center'], li['intercept'], li['slope'],
-                                 li['location'], li['scale'], li['amplitude'])
+            g.lines[line] = Line(li['w1'], li['w2'], li['center'], 
+                                 li['intercept'][0], li['intercept'][1],
+                                 li['slope'][0], li['slope'][1],
+                                 li['location'][0], li['location'][1],
+                                 li['scale'][0], li['scale'][1],
+                                 li['amplitude'][0], li['amplitude'][1])
     return ngal, ngalaxies, galaxies

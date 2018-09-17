@@ -383,17 +383,18 @@ class GUI (QMainWindow):
         """Fit defined guess."""
         # Continuum  self.sp.guess
         # Lines:     self.sp.emlines+self.sp.ablines
-        intercept, slope = fitContinuum(self.sp)
+        intercept, interceptErr, slope, slopeErr = fitContinuum(self.sp)
         linefitpars = fitLines(self.sp, intercept, slope)
         z = self.sp.gal.z
         xg, yg = zip(*self.sp.guess.xy)
         xg = np.array(xg) * (1. + self.sp.gal.z)
         LinesNames = list(self.sp.Lines.keys())
         LinesCenters = [list(self.sp.Lines.values())[i][1] for i in range(len(LinesNames))]
-        print('Cont. ', intercept, slope)
+        # print('Cont. ', intercept, slope)
         for pars in linefitpars:
-            loc, amp, scale = pars
-            print('loc, scale, amp ', loc, scale, amp)
+            loc, locErr, amp, ampErr, scale, scaleErr = pars
+            # print('loc, scale, amp ', loc, scale, amp)
+            # print('redshift is: ',z)
             dl = np.abs(LinesCenters - loc / (1. + z))
             idx, = np.where(dl == min(dl))
             if len(idx) > 1:
@@ -403,9 +404,10 @@ class GUI (QMainWindow):
                     linename = LinesNames[idx[1]]  # Absorption
             else:
                 linename = LinesNames[idx[0]]
-            print(linename)
+            # print('line is: ', linename)
             center = LinesCenters[idx[0]]
-            line = Line(xg[0], xg[3], center, intercept, slope, loc, scale, amp)
+            line = Line(xg[0], xg[3], center, intercept, interceptErr, 
+                        slope, slopeErr, loc, locErr, scale, scaleErr, amp, ampErr)
             # Add to dictionary
             self.sp.gal.lines[linename] = line
         # Take out guess

@@ -60,23 +60,34 @@ class Sky(object):
 
 class Line(object):
     """Line definition."""
-    def __init__(self, w1, w2, center, intcpt, slope, loc, scale, amp):
+    def __init__(self, w1, w2, center, intcpt, intcptErr, slope, slopeErr,
+                 loc, locErr, scale, scaleErr, amp, ampErr):
         self.w1 = w1
         self.w2 = w2
         self.center = center
         self.location = loc
+        self.eLocation = locErr
         self.scale = scale
+        self.eScale = scaleErr
         self.amplitude = amp
+        self.eAmplitude = ampErr
         self.intercept = intcpt
+        self.eIntercept = intcptErr
         self.slope = slope
-        # print('center is: ', self.center)
-        # print('location is: ', self.location)
+        self.eSlope = slopeErr
         self.computeAll()
 
     def computeAll(self):
         self.z = (self.location - self.center) / self.center  # z from the line
+        self.eZ = self.eLocation / self.center
         # print('z is ', self.z)
         w0 = (self.intercept + self.slope * self.location)  # observed
+        # eW0 = self.eIntercept + self.location * self.eSlope
+        # We consider only error in intercept since the continuum is evaluated around the line
+        eW0 = self.eIntercept
         self.flux = np.sqrt(2 * np.pi) * np.abs(self.amplitude) * self.scale
+        self.eFlux = self.flux * (self.eAmplitude/self.amplitude + self.eScale/self.scale) 
         self.EW = self.flux / w0 / (1. + self.z)  # At rest
+        self.eEW = self.EW * (self.eFlux / self.flux + eW0 / w0)
         self.FWHM = 2.35483 * self.scale / (1 + self.z)  # At rest
+        self.eFWHM = self.FWHM * self.eScale / self.scale

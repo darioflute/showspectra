@@ -5,7 +5,7 @@ from setuptools import setup
 
 config = {
     'name': 'showspectra',
-    'version': '0.04',
+    'version': '0.05',
     'description': 'Show Spectra',
     'long_description': 'The package shows spectra and fits lines',
     'author': 'Dario Fadda',
