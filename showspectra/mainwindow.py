@@ -194,7 +194,7 @@ class GUI (QMainWindow):
 
     def fileQuit(self):
         """Quitting the program."""
-        if self.ngal != 0:
+        if self.ngal is not None:
             exportAnalysis(self.galaxies, self.ngal, self.dirname)
         self.close()
 
@@ -429,6 +429,7 @@ class GUI (QMainWindow):
             flux, err, sky = FD.save()
             print(FD.save())
             # Opening files
+            self.ngal = None
             print('Opening ', flux)
             try:
                 self.galaxies = getGalaxies(flux)
