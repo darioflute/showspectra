@@ -447,6 +447,7 @@ class GUI (QMainWindow):
                 self.ngal = 0
                 self.ngalaxies = len(self.galaxies)
             self.sp.computeInitialFigure(self)
+            self.resizeWavelength()
 
 
 def main():
