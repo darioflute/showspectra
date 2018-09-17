@@ -75,6 +75,8 @@ class SpectrumCanvas(MplCanvas):
         else:
             try:
                 self.fig.delaxes(self.axes)
+                self.fig.delaxes(self.axprev)
+                self.fig.delaxes(self.axnext)
                 self.axes = None
             except BaseException:
                 pass
@@ -95,9 +97,9 @@ class SpectrumCanvas(MplCanvas):
             for a in ['top', 'bottom', 'right', 'left']:
                 self.axprev.spines[a].set_visible(False)
                 self.axnext.spines[a].set_visible(False)
-            self.bnext = Button(self.axnext, '>>', color='white', hovercolor='white')
+            self.bnext = Button(self.axnext, '>>', color='white', hovercolor='gray')
             self.bnext.on_clicked(self.nextspec)
-            self.bprev = Button(self.axprev, '<<', color='white', hovercolor='white')
+            self.bprev = Button(self.axprev, '<<', color='white', hovercolor='gray')
             self.bprev.on_clicked(self.prevspec)
             # Filter
             self.filter = False

@@ -1,6 +1,6 @@
 package:
   name: showspectra
-  version: 0.03
+  version: 0.04
 
 source:
   git_tag: master
