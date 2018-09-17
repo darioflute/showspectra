@@ -67,6 +67,7 @@ class GUI (QMainWindow):
         if TD.exec_() == QDialog.Accepted:
             self.telescope = TD.save()
             print('Selected telescope: ', self.telescope)
+            self.fileOpen()
 
     def createMenu(self):
         """Menu."""
@@ -193,7 +194,8 @@ class GUI (QMainWindow):
 
     def fileQuit(self):
         """Quitting the program."""
-        exportAnalysis(self.galaxies, self.ngal, self.dirname)
+        if self.ngal != 0:
+            exportAnalysis(self.galaxies, self.ngal, self.dirname)
         self.close()
 
     def maskSpectrum(self, glitch=False):
@@ -428,12 +430,16 @@ class GUI (QMainWindow):
             print(FD.save())
             # Opening files
             print('Opening ', flux)
-            self.galaxies = getGalaxies(flux)
-            self.dirname, file = os.path.split(flux)
-            print('Opening ', err)
-            getErrors(self, err)
-            print('Opening ', sky)
-            self.sky = getSky(sky)
+            try:
+                self.galaxies = getGalaxies(flux)
+                self.dirname, file = os.path.split(flux)
+                print('Opening ', err)
+                getErrors(self, err)
+                print('Opening ', sky)
+                self.sky = getSky(sky)
+            except BaseException:
+                print('Files are not correct for telescope ', self. telescope)
+                return
             # Recover previous analysis
             # if (os.path.exists(self.dirname + '/showspectra.fits')):
             #    print("Recovering previous analysis ...")
@@ -465,6 +471,6 @@ def main():
     readTemplates(gui)
     # Select telescope and open first files
     gui.selTelescope()
-    gui.fileOpen()
+    # gui.fileOpen()
     # Exec app
     sys.exit(app.exec_())
