@@ -8,7 +8,11 @@ The code is written in Python 3 and it is available on anaconda.
 
 ## Installation
 
-Once anaconda (Python 3.x) is installed, do:
+Once anaconda (Python 3.x) is installed, check if you have 'limfit' installed:
+
+conda install -c astropy limfit
+
+and then install showspectra:
 
 conda install -c darioflute showspectra
 
