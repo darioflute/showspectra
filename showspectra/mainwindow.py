@@ -257,6 +257,12 @@ class GUI (QMainWindow):
 
     def guessSpectrum(self):
         """Create a guess of continuum and lines."""
+        # First close any masking 
+        if self.sp.maskGlitch:
+            self.maskGlitch()
+        elif self.sp.span.active:
+            self.maskSpectrum()
+        # Then ask for type of fit
         if self.sp.gal.quality == "?":
             message = 'Please, find first the redshift of the spectrum !'
             self.sb.showMessage(message, 10000)
