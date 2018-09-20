@@ -219,3 +219,45 @@ def importAnalysis(file, galaxies):
                                  li['scale'][0], li['scale'][1],
                                  li['amplitude'][0], li['amplitude'][1])
     return ngal, ngalaxies, galaxies
+
+def getSpectra(file):
+    """Import results from previous analysis."""
+    import json
+    from collections import OrderedDict
+    from showspectra.spectra import Line, Spectrum
+    with open(file) as f:
+        data = json.load(f, object_pairs_hook=OrderedDict)
+        
+    n = data['ngalaxies']
+    spectra = []
+    for i in range(n):
+        g = Spectrum()
+        ii = str(i)
+        d = data[ii]
+        g.z = d['z']
+        g.dz = d['dz']
+        try:
+            g.za = d['za']
+        except BaseException:
+            g.za = None
+        try:
+            g.ze = d['ze']
+        except BaseException:
+            g.za = None
+        g.quality = d['quality']
+        g.spectype = d['spectype']
+        try:
+            g.zTemplate = d['template']
+        except BaseException:
+            g.zTemplate = None
+        lines = d['lines']
+        for line in lines.copy():
+            li = lines[line]
+            g.lines[line] = Line(li['w1'], li['w2'], li['center'], 
+                                 li['intercept'][0], li['intercept'][1],
+                                 li['slope'][0], li['slope'][1],
+                                 li['location'][0], li['location'][1],
+                                 li['scale'][0], li['scale'][1],
+                                 li['amplitude'][0], li['amplitude'][1])
+        spectra.append(g)
+    return spectra

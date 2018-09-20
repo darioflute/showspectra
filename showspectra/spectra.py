@@ -91,3 +91,22 @@ class Line(object):
         self.eEW = self.EW * (self.eFlux / self.flux + eW0 / w0)
         self.FWHM = 2.35483 * self.scale / (1 + self.z)  # At rest
         self.eFWHM = self.FWHM * self.eScale / self.scale
+
+class Spectrum(object):
+    """Analysis of spectrum."""
+
+    def __init__(self):
+        self.z = 0.  # initialize redshift [from xcorr]
+        self.dz = 0.  # initialize redshift error
+        self.ze = None  # z from emission lines
+        self.za = None  # z from absorption lines
+        self.zTemplate = None  # template with best cross-correlation
+        self.spectype = '?'  # type (?,star,galaxy,broadAGN,sky)
+        self.quality = '?'  # quality ( OK,guess,?)
+        self.lines = {}
+        # Identifications
+        self.ra = None
+        self.dec = None
+        self.fiber = None
+        self.aperture = None
+
