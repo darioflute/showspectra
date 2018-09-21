@@ -23,3 +23,9 @@ Start the code by writing:
 showspectra
 
 You will be asked to select the instrument, and then the files containing fluxes, errors, and sky.
+
+## Reading the analysis
+
+The analysis is saved in JSON files, which are plain ASCII files.
+An utility to read them in available in the showspectra package.
+You can read some examples in the notebook: [Read JSON output](notebooks/ReadLines.ipynb)
