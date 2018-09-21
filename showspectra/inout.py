@@ -236,6 +236,8 @@ def getSpectra(file):
         d = data[ii]
         g.z = d['z']
         g.dz = d['dz']
+        g.ra = d['ra']
+        g.dec = d['dec']
         try:
             g.za = d['za']
         except BaseException:
@@ -244,6 +246,14 @@ def getSpectra(file):
             g.ze = d['ze']
         except BaseException:
             g.za = None
+        try:
+            g.aperture = d['aperture']
+        except BaseException:
+            g.aperture = None
+        try:
+            g.fiber = d['fiber']
+        except BaseException:
+            g.fiber = None
         g.quality = d['quality']
         g.spectype = d['spectype']
         try:
