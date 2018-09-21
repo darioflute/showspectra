@@ -198,15 +198,33 @@ class GUI (QMainWindow):
             exportAnalysis(self.galaxies, self.ngal, self.dirname)
         self.close()
 
-    def maskSpectrum(self, glitch=False):
+
+    def maskSpectrum(self):
+        self.maskSpectra(False)
+
+    def maskSpectra(self, glitch):
         """Mask spectrum mode."""
+        # print('glitch is ', glitch)
+        # print('glitch masking ', self.glitchAction.isChecked())
+        # print('sky masking ', self.maskAction.isChecked())
         try:
-            self.sp.span.active ^= True
-            self.sp.changeVisibility('Lines')
-            self.sp.draw_idle()
+            if self.sp.maskGlitch and glitch:
+                self.sp.span.active ^= True
+            elif self.sp.maskSky and not glitch :
+                self.sp.span.active ^= True
+            elif self.sp.maskGlitch == False and self.sp.maskSky == False:
+                self.sp.span.active ^= True
             if self.sp.span.active:
-                if glitch:
+                if glitch == True:
                     self.sp.maskGlitch = True
+                    self.sp.maskSky = False
+                    self.glitchAction.setChecked(True)
+                    self.maskAction.setChecked(False)
+                else:
+                    self.sp.maskSky = True
+                    self.sp.maskGlitch = False
+                    self.maskAction.setChecked(True)
+                    self.glitchAction.setChecked(False)
                 if self.sp.showLines:
                     self.sp.changeVisibility('Lines')
                 self.sp.showMask = True
@@ -216,18 +234,24 @@ class GUI (QMainWindow):
                 self.sp.leg.get_texts()[3].set_alpha(0.3)
                 self.sp.leg.get_lines()[3].set_alpha(0.3)
             else:
-                self.sp.maskGlitch = False
+                if glitch == True:
+                    self.sp.maskGlitch = False
+                    self.glitchAction.setChecked(False)
+                else:
+                    self.sp.maskSky = False
+                    self.maskAction.setChecked(False)
                 if not self.sp.showLines:
                     self.sp.changeVisibility('Lines')
                 self.sp.leg.get_texts()[3].set_alpha(1.0)
                 self.sp.leg.get_lines()[3].set_alpha(1.0)
                 pass
+            self.sp.draw_idle()
         except BaseException:
             print('No spectrum defined')
             pass
         
     def maskGlitch(self):
-        self.maskSpectrum(glitch=True)
+        self.maskSpectra(True)
 
     def maskOtherSpectra(self, message):
         """Spread to the other spectra the action on one spectrum."""
@@ -261,7 +285,7 @@ class GUI (QMainWindow):
         if self.sp.maskGlitch:
             self.maskGlitch()
         elif self.sp.span.active:
-            self.maskSpectrum()
+            self.maskSpectra(False)
         # Then ask for type of fit
         if self.sp.gal.quality == "?":
             message = 'Please, find first the redshift of the spectrum !'
