@@ -685,7 +685,7 @@ class SpectrumCanvas(MplCanvas):
         self.zannotation.remove()
 
     def getDouble(self, z):
-        znew, okPressed = QInputDialog.getDouble(self, "Redshift", "z", z, -10000., 50000., 2)
+        znew, okPressed = QInputDialog.getDouble(self, "Redshift", "z", z, -1., 10., 5)
         if okPressed:
             return znew
         else:
