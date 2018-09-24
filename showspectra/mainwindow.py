@@ -260,9 +260,11 @@ class GUI (QMainWindow):
         if message == 'mask':
             for galaxy in self.galaxies:
                 galaxy.c[indmin:indmax] = 0
+                galaxy.clip()
         elif message == 'unmask':
             for galaxy in self.galaxies:
                 galaxy.c[indmin:indmax] = 1
+                galaxy.clip()
         # Export the new analysis - to save stuff in case of crash
         exportAnalysis(self.galaxies, self.ngal, self.dirname)
 

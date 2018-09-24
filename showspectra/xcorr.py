@@ -125,6 +125,7 @@ def cross_correlation(self):
     """Cross correlation between galaxy spectrum and templates."""
     # A) subtract continuum from galaxy spectrum
     self.gal = self.galaxies[self.ngal]
+    self.gal.clip()
     wg = self.gal.wc.copy()
     fg = self.gal.fc.copy()
     eg = self.gal.ec.copy()

@@ -153,9 +153,9 @@ def fitContinuum(sp):
     xg, yg = zip(*sp.guess.xy)
     xg = np.array(xg)
     xg *= 1. + sp.gal.z
-    wc = sp.gal.wc
-    fc = sp.gal.fc
-    ec = sp.gal.ec
+    wc = sp.gal.w
+    fc = sp.gal.f
+    ec = sp.gal.e
     c = sp.gal.c
     idx = np.where(((wc > xg[0]) & (wc < xg[1]) & c == 1) | ((wc > xg[2]) & (wc < xg[3]) & c == 1))
     x = wc[idx]
@@ -187,9 +187,9 @@ def fitLines(sp, intercept, slope):
     from lmfit import Parameters, minimize
     # Select the input values for the fit
     z = sp.gal.z
-    wc = sp.gal.wc
-    fc = sp.gal.fc
-    ec = sp.gal.ec
+    wc = sp.gal.w
+    fc = sp.gal.f
+    ec = sp.gal.e
     c = sp.gal.c
     xg, yg = zip(*sp.guess.xy)
     xg = np.array(xg)

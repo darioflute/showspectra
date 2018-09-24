@@ -32,10 +32,11 @@ class Galaxy(object):
 
     # Redefine limits in wavelenght and flux
     def limits(self):
+        self.clip()
         w = self.wc / (1 + self.z)
         f = self.fc
-        minf = np.nanmin(f[self.c])
-        maxf = np.nanmax(f[self.c])
+        minf = np.nanmin(f)
+        maxf = np.nanmax(f)
         df = maxf - minf
         mf = 0.5 * (maxf + minf)
         dw = np.nanmax(w) - np.nanmin(w)

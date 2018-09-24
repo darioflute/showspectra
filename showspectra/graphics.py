@@ -141,11 +141,11 @@ class SpectrumCanvas(MplCanvas):
         self.axes.set_ylabel('Flux [$W\,m^{-2}\,Hz^{-1}$]')
         self.ngal = self.parent.ngal
         self.gal = self.parent.galaxies[self.ngal]
-        self.wave = self.gal.wc / (1. + self.gal.z)
+        self.wave = self.gal.w / (1. + self.gal.z)
         if self.filter:
-            self.flux = savgol_filter(self.gal.fc, 7, 3)
+            self.flux = savgol_filter(self.gal.f, 7, 3)
         else:
-            self.flux = self.gal.fc
+            self.flux = self.gal.f
         self.fluxLine = self.axes.plot(self.wave[self.gal.c], self.flux[self.gal.c],
                                        color='royalblue', label='Flux')
         # Overplot the original flux (if there is masking)
@@ -166,7 +166,7 @@ class SpectrumCanvas(MplCanvas):
         self.skyspec, = self.skyLine
         self.skyspec.set_visible(self.showSky)
         # Spectrum error
-        self.errLine = self.axes.plot(self.wave, self.gal.ec, color='g', label='Error')
+        self.errLine = self.axes.plot(self.wave[self.gal.c], self.gal.e[self.gal.c], color='g', label='Error')
         self.errspec, = self.errLine
         self.errspec.set_visible(self.showErr)
         # Fake line to have the lines in the legend
@@ -310,14 +310,14 @@ class SpectrumCanvas(MplCanvas):
     def drawFittedLines(self):
         """Overplot fitted lines."""
         if len(self.gal.lines) > 0:
-            wc = self.gal.wc
+            w = self.gal.w
             z = self.gal.z
             # Copy to avoid error: "RuntimeError: dictionary changed size during iteration”
             for line in self.gal.lines.copy():
                 li = self.gal.lines[line]
                 print('limits of fit ', line, li.w1, li.w2)
-                mask = (wc > li.w1) & (wc < li.w2)
-                x = wc[mask]
+                mask = (w > li.w1) & (w < li.w2)
+                x = w[mask]
                 cont = li.intercept + li.slope * x
                 y = cont + li.amplitude * np.exp(-(x - li.location)**2 / (2 * li.scale**2))
                 print(line, li.intercept, li.slope, li.location, li.scale, li.amplitude)
@@ -498,6 +498,7 @@ class SpectrumCanvas(MplCanvas):
         if self.key in ['control', 'cmd', 'shift', 'alt']:
             # Unmask
             self.gal.c[indmin:indmax] = 1
+            self.gal.clip()
             self.masklimits = [indmin, indmax]
             if self.maskGlitch == False:
                 self.maskSignal.emit('unmask')
@@ -506,6 +507,7 @@ class SpectrumCanvas(MplCanvas):
         else:
             # Mask
             self.gal.c[indmin:indmax] = 0
+            self.gal.clip()
             self.masklimits = [indmin, indmax]
             if self.maskGlitch == False:
                 self.maskSignal.emit('mask')
