@@ -214,7 +214,8 @@ class SpectrumCanvas(MplCanvas):
         wmin = np.nanmin(self.wave)
         wmax = np.nanmax(self.wave)
         dy = ylim1 - ylim0
-        for line in self.Lines.keys():
+        # for line in self.Lines.keys():
+        for line in list(self.Lines):
             nline = self.Lines[line][0]
             wline = self.Lines[line][1]
             if (wline > wmin and wline < wmax):

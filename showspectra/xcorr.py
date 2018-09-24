@@ -140,7 +140,8 @@ def cross_correlation(self):
     sz = []
     snr = []
     temps = []
-    for template in self.templates.keys():
+    # for template in self.templates.keys():
+    for template in list(self.templates):
         # print template
         a, b, c = computeXcorr(wg, fg, eg, self.templates[template])
         if a != [0]:
