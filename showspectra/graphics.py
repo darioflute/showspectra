@@ -138,7 +138,7 @@ class SpectrumCanvas(MplCanvas):
     def drawSpectrum(self):
         self.axes.cla()
         self.axes.set_xlabel('Wavelength [$\AA$]')
-        self.axes.set_ylabel('Flux [$W\,m^{-2}\,Hz^{-1}$]')
+        self.axes.set_ylabel('Flux [$erg\,s^{-1}\,cm^{-2}\,\AA^{-1}$]')
         self.ngal = self.parent.ngal
         self.gal = self.parent.galaxies[self.ngal]
         self.wave = self.gal.w / (1. + self.gal.z)

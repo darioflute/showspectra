@@ -97,7 +97,7 @@ def exportAnalysis(galaxies, ngal, dirname, name=None):
     data = OrderedDict([('ngal', ngal),
                         ('ngalaxies', len(galaxies)),
                         ('waveUnit', 'Angstrom'),
-                        ('fluxUnit', 'W/m2/Hz')
+                        ('fluxUnit', 'erg/s/cm2')
                         ])
     for i, galaxy in enumerate(galaxies):
         # Define list of lines
