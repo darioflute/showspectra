@@ -268,7 +268,7 @@ class SpectrumCanvas(MplCanvas):
         # Check alpha of filter
         self.leg.get_texts()[4].set_alpha(alphaf)
         self.leg.get_texts()[5].set_alpha(alpham)
-        self.leg.draggable()
+        self.leg.set_draggable(True)
         self.lined = dict()
         self.labed = dict()
         for legline, origline, txt in zip(self.leg.get_lines(), self.lines, self.leg.texts):

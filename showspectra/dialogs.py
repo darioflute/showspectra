@@ -110,21 +110,31 @@ class selectFiles(QDialog):
             # Try to guess error and sky files from the same directory
             from glob import glob as gb
             import re
-            print('path is ', path)
-            files = gb(path + '/*.fit*')
-            print('Files are ', files)
-            r = re.compile(".*err.*\.fit.*", flags=re.IGNORECASE)
-            rErr = list(filter(r.match, files))
-            if rErr is not None:
-                self.err = rErr[0]
-                head, tail = os.path.split(self.err)
-                self.b2.setText('Err: ' + tail)
-            r = re.compile(".*sky.*\.fit.*", flags=re.IGNORECASE)
-            rSky = list(filter(r.match, files))
-            if rSky is not None:
-                self.sky = rSky[0]
-                head, tail = os.path.split(self.sky)
-                self.b3.setText('Sky: ' + tail)
+            
+            pattern = 'SDSS'
+            match = re.search(pattern, file)
+            if match:
+                self.b2.setText('Err: '+file)
+                self.b3.setText('Sky: '+file)
+                self.err = file
+                self.sky = file
+            else:
+                # check if pattern is found to guess the two other files             
+                print('path is ', path)
+                files = gb(path + '/*.fit*')
+                print('Files are ', files)
+                r = re.compile(".*err.*\.fit.*", flags=re.IGNORECASE)
+                rErr = list(filter(r.match, files))
+                if rErr is not None:
+                    self.err = rErr[0]
+                    head, tail = os.path.split(self.err)
+                    self.b2.setText('Err: ' + tail)
+                r = re.compile(".*sky.*\.fit.*", flags=re.IGNORECASE)
+                rSky = list(filter(r.match, files))
+                if rSky is not None:
+                    self.sky = rSky[0]
+                    head, tail = os.path.split(self.sky)
+                    self.b3.setText('Sky: ' + tail)
 
     def selectErr(self):
         self.err = self.selectFile('Error')
