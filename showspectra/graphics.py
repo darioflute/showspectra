@@ -92,8 +92,8 @@ class SpectrumCanvas(MplCanvas):
             self.axes.grid(True, which='both')
 
             # Next/Previous
-            self.axprev = self.fig.add_axes([0.44, 0.85, 0.02, 0.04], label='axprev')
-            self.axnext = self.fig.add_axes([0.48, 0.85, 0.02, 0.04], label='axnext')
+            self.axprev = self.fig.add_axes([0.43, 0.85, 0.02, 0.04], label='axprev')
+            self.axnext = self.fig.add_axes([0.49, 0.85, 0.02, 0.04], label='axnext')
             for a in ['top', 'bottom', 'right', 'left']:
                 self.axprev.spines[a].set_visible(False)
                 self.axnext.spines[a].set_visible(False)
@@ -695,7 +695,8 @@ class SpectrumCanvas(MplCanvas):
             return None
 
     def getInt(self, n):
-        nnew, okPressed = QInputDialog.getInt(self, "Spectrum no", "n", n, 0,
+        nstring = "n: 0 - " + str(self.parent.ngalaxies-1)
+        nnew, okPressed = QInputDialog.getInt(self, "Spectrum no", nstring, n, 0,
                                               self.parent.ngalaxies-1, 2)
         if okPressed:
             return nnew

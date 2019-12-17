@@ -468,13 +468,15 @@ class GUI (QMainWindow):
             self.ngal = None
             print('Opening ', flux)
             try:
-                self.galaxies = getGalaxies(flux)
                 self.dirname, file = os.path.split(flux)
                 if self.telescope != 'SDSS':
+                    self.galaxies = getGalaxies(flux)
                     print('Opening ', err)
                     getErrors(self, err)
-                print('Opening ', sky)
-                self.sky = getSky(sky)
+                    print('Opening ', sky)
+                    self.sky = getSky(sky)
+                else:
+                    self.galaxies, self.sky = getGalaxies(flux)
             except BaseException:
                 print('Files are not correct for telescope ', self. telescope)
                 return
