@@ -696,7 +696,7 @@ class SpectrumCanvas(MplCanvas):
 
     def getInt(self, n):
         nnew, okPressed = QInputDialog.getInt(self, "Spectrum no", "n", n, 0,
-                                              self.parent.ngalaxies, 2)
+                                              self.parent.ngalaxies-1, 2)
         if okPressed:
             return nnew
         else:
