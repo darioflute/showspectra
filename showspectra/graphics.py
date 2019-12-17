@@ -711,7 +711,7 @@ class SpectrumCanvas(MplCanvas):
             return None
 
     def getType(self, t):
-        items = ['Galaxy', 'Star', 'BroadAGN', '?']
+        items = ['Galaxy', 'Star', 'BroadAGN', 'Sky', '?']
         tnew, okPressed = QInputDialog.getItem(self, "Type", "T", items, 0, False)
         if okPressed:
             return tnew
