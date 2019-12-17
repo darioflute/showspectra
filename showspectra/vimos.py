@@ -24,57 +24,12 @@ def getGalaxies(file):
     wave = crval + (np.arange(len(data[0])) - crpix) * cdelt
     galaxies = [Galaxy(wave, data[i]) for i in range(len(data))]
 
-    # Incorrect: Rebecca says they are all galaxies (two slits have more than one galaxy)
-    # HIERARCH ESO INS SLIT18 ID = 22 / ID of SLIT i
-    # HIERARCH ESO INS SLIT18 OBJ RA = 10.366204 / RA (J2000) of object
-    # HIERARCH ESO INS SLIT18 OBJ DEC = -9.160961 / DEC (J2000) of object
-    eso = 'HIERARCH ESO INS'
-    n = len(galaxies)
-    fiber = np.zeros(n)
-    ra = np.zeros(n)
-    dec = np.zeros(n)
-    x = np.zeros(n)
-    galsky = np.zeros(n)
-    i = 0
-    while True:
-        fiber[i] = hdr[eso + ' SLIT' + str(i + 1) + ' ID']
-        ra[i] = hdr[eso + ' SLIT' + str(i + 1) + ' OBJ RA']
-        dec[i] = hdr[eso + ' SLIT' + str(i + 1) + ' OBJ DEC']
-        x[i] = hdr[eso + ' SLIT' + str(i + 1) + ' X']
-        try:
-            hdr[eso + ' SLIT' + str(i + 2) + ' X']
-        except BaseException:
-            break
-        i += 1
-    j = 0
-    i += 1
-    while True:
-        fiber[i] = hdr[eso + ' REF' + str(j + 1) + ' ID']
-        ra[i] = hdr[eso + ' REF' + str(j + 1) + ' OBJ RA']
-        dec[i] = hdr[eso + ' REF' + str(j + 1) + ' OBJ DEC']
-        x[i] = hdr[eso + ' REF' + str(j + 1) + ' X']
-        galsky[i] = 1
-        try:
-            hdr[eso + ' REF' + str(j + 2) + ' X']
-        except BaseException:
-            break
-        j += 1
-        i += 1
-
-    # order according to x
-    idx = np.argsort(x)
-    fiber = fiber[idx]
-    ra = ra[idx]
-    dec = dec[idx]
-    x = x[idx]
-    galsky = galsky[idx]
-
+    # Source identification added to the header
+    # HIERARCH SLIT_??_ID, RA, DEC
     for i in range(len(galaxies)):
-        galaxies[i].fiber = str(fiber[i])
-        galaxies[i].ra = str(ra[i])
-        galaxies[i].dec = str(dec[i])
-        if galsky[i]:
-            galaxies[i].spectype = 'sky'
+        galaxies[i].fiber = hdr['HIERARCH SLIT_{:02d}_ID'.format(i)]
+        galaxies[i].ra = hdr['HIERARCH SLIT_{:02d}_RA'.format(i)]
+        galaxies[i].dec = hdr['HIERARCH SLIT_{:02d}_DEC'.format(i)]
 
     return galaxies
 
