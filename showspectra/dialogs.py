@@ -152,7 +152,7 @@ class selectFiles(QDialog):
         fd = QFileDialog()
         fd.setWindowTitle('Open ' + label + ' File')
         fd.setLabelText(QFileDialog.Accept, "Select " + label)
-        fd.setNameFilters(["Fits Files (*.fits *.fit *.FITS *.FIT)"])
+        fd.setNameFilters(["Fits Files (*.fit* *.FIT*)"])
         fd.setOptions(QFileDialog.DontUseNativeDialog)
         fd.setViewMode(QFileDialog.List)
         if (fd.exec()):
