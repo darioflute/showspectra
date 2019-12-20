@@ -8,7 +8,9 @@ The code is written in Python 3 and it is available on anaconda.
 
 ## Installation
 
-Once anaconda (Python 3.x) is installed, check if you have 'limfit' installed:
+The current release requires the installation of [anaconda with Python 3.7](https://www.anaconda.com/distribution):
+
+Once anaconda (Python 3.7) is installed, check if you have 'limfit' installed:
 
 conda install -c astropy limfit
 
