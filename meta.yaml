@@ -1,6 +1,10 @@
+{% set name = "showspectra" %}
+{% set data = load_setup_py_data() %}
+
+
 package:
-  name: showspectra
-  version: 0.08
+  name: "{{ name|lower }}"
+  version: "{{ data.get('version') }}"
 
 source:
   git_tag: master
@@ -14,7 +18,7 @@ requirements:
     - setuptools
 
   run:
-    - python >=3.6
+    - python >=3.7
     - numpy >=1.9.3
     - matplotlib >=2.1.1
         

@@ -497,6 +497,7 @@ class GUI (QMainWindow):
 
 
 def main():
+    from showspectra import __version__
     app = QApplication(sys.argv)
     gui = GUI()
     # Adjust geometry to size of the screen
@@ -506,7 +507,7 @@ def main():
     # Add an icon for the application
     app.setWindowIcon(QIcon(QPixmap(gui.path0 + '/icons/showspectra.png')))
     app.setApplicationName('SHOWSPECTRA')
-    app.setApplicationVersion('0.01-beta')
+    app.setApplicationVersion(__version__)
     # Read templates
     readTemplates(gui)
     # Select telescope and open first files
