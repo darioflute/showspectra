@@ -3,7 +3,7 @@
 from distutils.core import setup
 import json
 
-with open('sospex/version.json') as fp:
+with open('showspectra/version.json') as fp:
     _info = json.load(fp)
 
 with open("README.md", "r") as fh:
