@@ -12,11 +12,30 @@ The current release requires the installation of [anaconda with Python 3.7](http
 
 Once anaconda (Python 3.7) is installed, check if you have 'limfit' installed:
 
-conda install -c astropy limfit
+conda install -c cprescher lmfit -y
 
 and then install showspectra:
 
 conda install -c darioflute showspectra
+
+## Installation with environment
+
+A safe way to install the package is to create an environment to run the package.
+For instance:
+
+conda create -n showspectra anaconda
+
+conda activate showspectra
+
+conda install -c cprescher lmfit -y
+
+conda install -c darioflute showspectra
+
+At this point it is possible to use showspectra.
+
+At the end, exit from the environment by deactivating it:
+
+conda deactivate
 
 ## Usage
 
