@@ -3,6 +3,7 @@ import sys
 from PyQt5.QtCore import pyqtSignal, QObject
 from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon
+from matplotlib.artist import Artist
 
 
 class SegmentsSelector(QObject):
@@ -316,18 +317,18 @@ class SegmentsInteractor(QObject):
         self.computeSlope()
 
 
-class LineInteractor(QObject):
-    """
-    A Gaussian line interactor.
-    Arguments:
-        ax axes to which the interactor is associated
-        c0 intercept of continuum
-        cs slope of continuum
-        x0 center of the line
-        A  amplitude of the line
-        fwhm FWHM of the line
-        epsilon max pixel distance to count as a vertex hit
-    """
+class OldLineInteractor(QObject):
+#    """
+#    A Gaussian line interactor.
+#    Arguments:
+#        ax axes to which the interactor is associated
+#        c0 intercept of continuum
+#        cs slope of continuum
+#        x0 center of the line
+#        A  amplitude of the line
+#        fwhm FWHM of the line
+#        epsilon max pixel distance to count as a vertex hit
+#    """
     showverts = True
     mySignal = pyqtSignal(str)
     modSignal = pyqtSignal(str)
@@ -509,3 +510,207 @@ class LineInteractor(QObject):
         self.canvas.update()
         self.canvas.flush_events()
         # self.canvas.draw_idle()
+
+class LineInteractor(QObject):
+    """
+    A Gaussian line interactor.
+    Arguments:
+        ax axes to which the interactor is associated
+        c0 intercept of continuum
+        cs slope of continuum
+        x0 center of the line
+        A  amplitude of the line
+        fwhm FWHM of the line
+        epsilon max pixel distance to count as a vertex hit
+
+    Key-bindings
+
+      't' toggle markers on and off.  When markers are on,
+          one can move or modify the line
+
+      'd' delete the line
+    """
+
+    showverts = True
+    mySignal = pyqtSignal(str)
+    modSignal = pyqtSignal(str)
+
+    def __init__(self, ax,  c0, cs, x0, A, fwhm, color='#7ec0ee', epsilon=10):
+        super().__init__()
+        sys.setrecursionlimit(10000)  # 10000 is 10x the default value
+        self.epsilon = epsilon
+        self.ax = ax
+        canvas = ax.figure.canvas
+        self.c0 = c0  # Value of continuum at origin
+        self.cs = cs  # Slope of the continuum
+        self.type = 'Line'
+        self.color = color
+        self.x0 = x0
+        self.A = A
+        self.fwhm = fwhm
+        self.computeMarkers()
+        self.computeGaussian()
+        self.poly = Polygon(self.verts, animated=True, fill=False, 
+                             closed=False, color=self.color)
+        self.ax.add_patch(self.poly)
+        x, y = zip(*self.xy)
+        self.line = Line2D(x, y, marker='o', linestyle=None, linewidth=0.,
+                           markerfacecolor=color, animated=True)
+        self.ax.add_line(self.line)
+        self.cid = self.poly.add_callback(self.poly_changed)
+        self._ind = None  # the active vert
+
+        canvas.mpl_connect('draw_event', self.draw_callback)
+        canvas.mpl_connect('button_press_event', self.button_press_callback)
+        canvas.mpl_connect('key_press_event', self.key_press_callback)
+        canvas.mpl_connect('button_release_event', self.button_release_callback)
+        canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
+        self.canvas = canvas
+
+    def computeMarkers(self):
+        'Compute position of markers.'
+        x = self.x0 + 0.5 * self.fwhm * np.array([-1, 0, 1])
+        y = self.c0 + (x - self.x0) * self.cs + self.A * np.array([0.5, 1., 0.5])
+        self.xy = [(i, j) for (i, j) in zip(x, y)]
+
+    def computeGaussian(self):
+        'Compute the Gaussian polygon from the position of the markers.'
+        self.sigma = self.fwhm / (2 * np.sqrt(2 * np.log(2)))
+        # Create an array of x values and compute the value of the Gaussian on it
+        x = np.linspace(self.x0 - self.fwhm, self.x0 + self.fwhm, 30)
+        dx = (x - self.x0) / self.sigma / np.sqrt(2.)
+        y = self.c0 + (x - self.x0) * self.cs + self.A * np.exp(-dx * dx)
+        self.verts = [(x_, y_) for x_, y_ in zip(x, y)]
+        
+    def draw_callback(self, event):
+        self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+        self.ax.draw_artist(self.poly)
+        self.ax.draw_artist(self.line)
+
+    def poly_changed(self, poly):
+        'this method is called whenever the polygon object is called'
+        # only copy the artist props to the line (except visibility)
+        vis = self.line.get_visible()
+        Artist.update_from(self.line, poly)
+        self.line.set_visible(vis)  # don't use the poly visibility state
+
+    def get_ind_under_point(self, event):
+        'get the index of the vertex under point if within epsilon tolerance'
+        # Distance is computed in pixels on the screen
+        xy = self.ax.transData.transform(self.xy)
+        x, y = zip(*xy)
+        x = np.array(x)
+        y = np.array(y)
+        d = np.hypot(x - event.x, y - event.y)
+        indseq, = np.nonzero(d == d.min())
+        ind = indseq[0]
+        if d[ind] >= self.epsilon:
+            ind = None
+        return ind
+
+    def button_press_callback(self, event):
+        'whenever a mouse button is pressed'
+        if not self.showverts:
+            return
+        if event.inaxes is None:
+            return
+        if event.button != 1:
+            return
+        self._ind = self.get_ind_under_point(event)
+
+    def button_release_callback(self, event):
+        'whenever a mouse button is released'
+        if not self.showverts:
+            return
+        if event.button != 1:
+            return
+        self._ind = None
+        # Notify callback
+        self.modSignal.emit('line guess modified')
+
+    def key_press_callback(self, event):
+        'whenever a key is pressed'
+        if not event.inaxes:
+            return
+        if event.key == 't':
+            self.showverts = not self.showverts
+            self.line.set_visible(self.showverts)
+            if not self.showverts:
+                self._ind = None
+        elif event.key == 'd':
+            ind = self.get_ind_under_point(event)
+            if ind is not None:
+                self.mySignal.emit('line deleted ')
+        self.canvas.draw_idle()
+        
+    def motion_notify_callback(self, event):
+        'on mouse movement'
+        if not self.showverts:
+            return
+        if self._ind is None:
+            return
+        if event.inaxes is None:
+            return
+        if event.button != 1:
+            return
+        x_, y_ = event.xdata, event.ydata
+
+        x, y = zip(*self.xy)
+        if x[-1] > x[0]:  # case wavelength
+            if self._ind == 0:
+                if x_ < x[1]:
+                    self.fwhm = 2 * (x[1] - x_)
+            elif self._ind == 1:
+                dx = x_ - x[1]
+                self.x0 += dx
+                dy = y_ - y[1]
+                if (self.A > 0) & (dy < -self.A):  # Emission line
+                    pass
+                elif (self.A < 0) & (dy > -self.A):  # Absorption line
+                    pass
+                else:
+                    self.A += dy
+            elif self._ind == 2:
+                if x_ > x[1]:
+                    self.fwhm = 2 * (x_ - x[1])
+        else:
+            if self._ind == 0:
+                if x_ > x[1]:
+                    self.fwhm = 2 * (x_ - x[1])
+            elif self._ind == 1:
+                dx = x_ - x[1]
+                self.x0 += dx
+                dy = y_ - y[1]
+                if (self.A > 0) & (dy < -self.A):  # Emission line
+                    pass
+                elif (self.A < 0) & (dy > -self.A):  # Absorption line
+                    pass
+                else:
+                    self.A += dy
+            elif self._ind == 2:
+                if x_ < x[1]:
+                    self.fwhm = 2 * (x[1] - x_)
+        # Update and redraw
+        self.updateCurves()
+
+    def updateCurves(self):
+        self.computeGaussian()
+        self.computeMarkers()
+        self.line.set_data(zip(*self.xy))
+        self.poly.xy = self.verts
+        self.canvas.restore_region(self.background)
+        self.ax.draw_artist(self.poly)
+        self.ax.draw_artist(self.line)
+        self.canvas.update()
+        self.canvas.flush_events()
+        
+    def safe_draw(self):
+        """Temporarily disconnect the draw_event callback to avoid recursion."""
+        self.canvas.mpl_disconnect(self.cid_draw)
+        self.canvas.draw_idle()
+        self.cid_draw = self.canvas.mpl_connect('draw_event', self.draw_callback)
+
+    def grab_background(self):
+        self.safe_draw()
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)  # or self.ax.bbox
+

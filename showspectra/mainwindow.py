@@ -384,8 +384,11 @@ class GUI (QMainWindow):
                             line.A += oldc - newc
                         else:
                             line.A -= oldc - newc
-                    line.grab_background()
+                    #line.grab_background()
                     line.updateCurves()
+        elif event == 'line guess modified':
+            # Redraw lines after modifying one line
+            self.sp.draw_idle()
         else:
             pass
 
