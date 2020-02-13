@@ -560,11 +560,11 @@ class LineInteractor(QObject):
         self.cid = self.poly.add_callback(self.poly_changed)
         self._ind = None  # the active vert
 
-        canvas.mpl_connect('draw_event', self.draw_callback)
-        canvas.mpl_connect('button_press_event', self.button_press_callback)
-        canvas.mpl_connect('key_press_event', self.key_press_callback)
-        canvas.mpl_connect('button_release_event', self.button_release_callback)
-        canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
+        self.cid_draw = canvas.mpl_connect('draw_event', self.draw_callback)
+        self.cid_press = canvas.mpl_connect('button_press_event', self.button_press_callback)
+        self.cid_key = canvas.mpl_connect('key_press_event', self.key_press_callback)
+        self.cid_release = canvas.mpl_connect('button_release_event', self.button_release_callback)
+        self.cid_motion = canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
         self.canvas = canvas
 
     def computeMarkers(self):
@@ -714,3 +714,18 @@ class LineInteractor(QObject):
         self.safe_draw()
         self.background = self.canvas.copy_from_bbox(self.fig.bbox)  # or self.ax.bbox
 
+    def disconnect(self):
+        self.canvas.mpl_disconnect(self.cid_draw)
+        self.canvas.mpl_disconnect(self.cid_press)
+        self.canvas.mpl_disconnect(self.cid_release)
+        self.canvas.mpl_disconnect(self.cid_motion)
+        self.canvas.mpl_disconnect(self.cid_key)
+        try:
+            self.line.remove()
+        except BaseException:
+            print('no markers')
+        try:
+            self.gauss.remove()
+        except BaseException:
+            print('no line')
+        self.canvas.draw_idle()
