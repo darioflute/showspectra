@@ -127,6 +127,40 @@ class SegmentsSelector(QObject):
             print('no lines to remove')
 
 
+class LineManager(QObject):
+    """
+    A manager to draw continuum and lines over common background
+    """
+
+    def __init__(self, ax, interactors):
+        super().__init__()
+        self.ax = ax
+        self.interactors = interactors
+        self.canvas = ax.figure.canvas
+        self.cid_draw = self.canvas.mpl_connect('draw_event', self.draw_callback)
+        self.cid_motion = self.canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
+
+    def draw_callback(self, event):
+        self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+        for interactor in self.interactors:
+            for artist in interactor.artists:
+                self.ax.draw_artist(artist)
+
+    def motion_notify_callback(self, event):
+        self.canvas.restore_region(self.background)        
+        for interactor in self.interactors:
+            for artist in interactor.artists:
+                self.ax.draw_artist(artist)
+        #self.canvas.blit(self.ax.bbox)
+        self.canvas.update()
+        self.canvas.flush_events()
+            
+    def disconnect(self):
+       self.canvas.mpl_disconnect(self.cid_draw)
+       self.canvas.mpl_disconnect(self.cid_motion)
+       del self.background
+       
+
 class SegmentsInteractor(QObject):
     """
     A segmented continuum interactor.
@@ -160,6 +194,7 @@ class SegmentsInteractor(QObject):
         self.ax.add_line(self.line1)
         self.ax.add_line(self.line2)
         self.ax.add_line(self.line)
+        self.artists = [self.line1, self.line2, self.line]
         self._ind = None  # the active vert
         self.connect()
 
@@ -174,17 +209,17 @@ class SegmentsInteractor(QObject):
         self.intcpt = yg[0] - self.slope * xg[0]
 
     def connect(self):
-        self.cid_draw = self.canvas.mpl_connect('draw_event', self.draw_callback)
+        #self.cid_draw = self.canvas.mpl_connect('draw_event', self.draw_callback)
         self.cid_press = self.canvas.mpl_connect('button_press_event', self.button_press_callback)
         self.cid_release = self.canvas.mpl_connect('button_release_event',
                                                    self.button_release_callback)
         self.cid_motion = self.canvas.mpl_connect('motion_notify_event',
                                                   self.motion_notify_callback)
         self.cid_key = self.canvas.mpl_connect('key_press_event', self.key_press_callback)
-        self.canvas.draw_idle()
+        #self.canvas.draw_idle()
 
     def disconnect(self):
-        self.canvas.mpl_disconnect(self.cid_draw)
+        #self.canvas.mpl_disconnect(self.cid_draw)
         self.canvas.mpl_disconnect(self.cid_press)
         self.canvas.mpl_disconnect(self.cid_release)
         self.canvas.mpl_disconnect(self.cid_motion)
@@ -203,14 +238,8 @@ class SegmentsInteractor(QObject):
             print('no markers')
         self.canvas.draw_idle()
 
-    def safe_draw(self):
-        """Temporarily disconnect the draw_event callback to avoid recursion."""
-        self.canvas.mpl_disconnect(self.cid_draw)
-        self.canvas.draw_idle()
-        self.cid_draw = self.canvas.mpl_connect('draw_event', self.draw_callback)
 
     def draw_callback(self, event):
-        # self.safe_draw()
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         self.ax.draw_artist(self.line1)
         self.ax.draw_artist(self.line2)
@@ -299,13 +328,13 @@ class SegmentsInteractor(QObject):
             y[i] = y[self._ind] + m * (x[i] - x[self._ind])
             self.xy[i] = (x[i], y[i])
         # Update segments and markers
-        self.canvas.restore_region(self.background)
+        #self.canvas.restore_region(self.background)
         self.updateLinesMarkers()
-        self.ax.draw_artist(self.line1)
-        self.ax.draw_artist(self.line2)
-        self.ax.draw_artist(self.line)
-        self.canvas.update()
-        self.canvas.flush_events()
+        #self.ax.draw_artist(self.line1)
+        #self.ax.draw_artist(self.line2)
+        #self.ax.draw_artist(self.line)
+        #self.canvas.update()
+        #self.canvas.flush_events()
         # Notify callback
         self.modSignal.emit('continuum guess modified')
 
@@ -557,10 +586,11 @@ class LineInteractor(QObject):
         self.line = Line2D(x, y, marker='o', linestyle=None, linewidth=0.,
                            markerfacecolor=color, animated=True)
         self.ax.add_line(self.line)
+        self.artists = [self.poly, self.line]
         self.cid = self.poly.add_callback(self.poly_changed)
         self._ind = None  # the active vert
 
-        self.cid_draw = canvas.mpl_connect('draw_event', self.draw_callback)
+        #self.cid_draw = canvas.mpl_connect('draw_event', self.draw_callback)
         self.cid_press = canvas.mpl_connect('button_press_event', self.button_press_callback)
         self.cid_key = canvas.mpl_connect('key_press_event', self.key_press_callback)
         self.cid_release = canvas.mpl_connect('button_release_event', self.button_release_callback)
@@ -698,24 +728,14 @@ class LineInteractor(QObject):
         self.computeMarkers()
         self.line.set_data(zip(*self.xy))
         self.poly.xy = self.verts
-        self.canvas.restore_region(self.background)
-        self.ax.draw_artist(self.poly)
-        self.ax.draw_artist(self.line)
-        self.canvas.update()
-        self.canvas.flush_events()
+        #self.canvas.restore_region(self.background)
+        #self.ax.draw_artist(self.poly)
+        #self.ax.draw_artist(self.line)
+        #self.canvas.update()
+        #self.canvas.flush_events()
         
-    def safe_draw(self):
-        """Temporarily disconnect the draw_event callback to avoid recursion."""
-        self.canvas.mpl_disconnect(self.cid_draw)
-        self.canvas.draw_idle()
-        self.cid_draw = self.canvas.mpl_connect('draw_event', self.draw_callback)
-
-    def grab_background(self):
-        self.safe_draw()
-        self.background = self.canvas.copy_from_bbox(self.fig.bbox)  # or self.ax.bbox
-
     def disconnect(self):
-        self.canvas.mpl_disconnect(self.cid_draw)
+        #self.canvas.mpl_disconnect(self.cid_draw)
         self.canvas.mpl_disconnect(self.cid_press)
         self.canvas.mpl_disconnect(self.cid_release)
         self.canvas.mpl_disconnect(self.cid_motion)

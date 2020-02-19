@@ -13,7 +13,8 @@ from showspectra.dialogs import selectTelescope, selectFiles, guessParams
 from showspectra.inout import importAnalysis, exportAnalysis
 from showspectra.templates import readTemplates
 from showspectra.xcorr import cross_correlation
-from showspectra.interactors import SegmentsSelector, SegmentsInteractor, LineInteractor
+from showspectra.interactors import (SegmentsSelector, SegmentsInteractor, 
+                                     LineInteractor, LineManager)
 from showspectra.lines import fitContinuum, fitLines
 from showspectra.spectra import Line
 
@@ -331,19 +332,22 @@ class GUI (QMainWindow):
         x = x[idx]
         y = y[idx]
         verts = [(i, j) for (i, j) in zip(x, y)]
-        SI = SegmentsInteractor(self.sp.axes, verts, self.zeroDeg)
-        SI.modSignal.connect(self.onModifiedGuess)
-        SI.mySignal.connect(self.onRemoveContinuum)
-        self.sp.guess = SI
+        self.sp.guess = SegmentsInteractor(self.sp.axes, verts, self.zeroDeg)
+        self.sp.guess.modSignal.connect(self.onModifiedGuess)
+        self.sp.guess.mySignal.connect(self.onRemoveContinuum)
+        interactors = [self.sp.guess]
         # Once the continuum is selected draw guesses for the lines required
         if self.nem > 0:
             self.sp.emlines = self.addLines(self.nem, x, 'emission')
+            interactors.extend(self.sp.emlines)
         else:
             self.sp.emlines = []
         if self.nab > 0:
             self.sp.ablines = self.addLines(self.nab, x, 'absorption')
+            interactors.extend(self.sp.ablines)
         else:
             self.sp.ablines = []
+        self.sp.lineManager = LineManager(self.sp.axes, interactors)
         self.sp.guessContinuum = False
         if not self.sp.showLines:
             self.sp.changeVisibility('Lines')
@@ -384,11 +388,12 @@ class GUI (QMainWindow):
                             line.A += oldc - newc
                         else:
                             line.A -= oldc - newc
-                    #line.grab_background()
                     line.updateCurves()
         elif event == 'line guess modified':
             # Redraw lines after modifying one line
-            self.sp.draw_idle()
+            #pass
+            print('line modified')
+            #self.sp.draw_idle()
         else:
             pass
 
@@ -410,6 +415,7 @@ class GUI (QMainWindow):
             for line in self.sp.emlines + self.sp.ablines:
                 line.disconnect()
                 line = None
+            self.sp.lineManager.disconnect()
             self.sp.emlines = []
             self.sp.ablines = []
             self.sp.fig.canvas.draw_idle()
