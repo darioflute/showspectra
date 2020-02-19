@@ -143,17 +143,21 @@ class LineManager(QObject):
     def draw_callback(self, event):
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         for interactor in self.interactors:
-            for artist in interactor.artists:
-                self.ax.draw_artist(artist)
+            interactor.draw_callback(event)
 
     def motion_notify_callback(self, event):
-        self.canvas.restore_region(self.background)        
-        for interactor in self.interactors:
-            for artist in interactor.artists:
-                self.ax.draw_artist(artist)
-        #self.canvas.blit(self.ax.bbox)
-        self.canvas.update()
-        self.canvas.flush_events()
+        if event.inaxes is None:
+            return
+        elif event.button != 1:
+            return
+        else:
+            self.canvas.restore_region(self.background)        
+            for interactor in self.interactors:
+                interactor.motion_notify_callback(event)
+                interactor.draw_callback(event)
+        self.canvas.blit(self.ax.bbox)
+        #self.canvas.update()
+        #self.canvas.flush_events()
             
     def disconnect(self):
        self.canvas.mpl_disconnect(self.cid_draw)
@@ -213,8 +217,8 @@ class SegmentsInteractor(QObject):
         self.cid_press = self.canvas.mpl_connect('button_press_event', self.button_press_callback)
         self.cid_release = self.canvas.mpl_connect('button_release_event',
                                                    self.button_release_callback)
-        self.cid_motion = self.canvas.mpl_connect('motion_notify_event',
-                                                  self.motion_notify_callback)
+        #self.cid_motion = self.canvas.mpl_connect('motion_notify_event',
+        #                                          self.motion_notify_callback)
         self.cid_key = self.canvas.mpl_connect('key_press_event', self.key_press_callback)
         #self.canvas.draw_idle()
 
@@ -222,7 +226,7 @@ class SegmentsInteractor(QObject):
         #self.canvas.mpl_disconnect(self.cid_draw)
         self.canvas.mpl_disconnect(self.cid_press)
         self.canvas.mpl_disconnect(self.cid_release)
-        self.canvas.mpl_disconnect(self.cid_motion)
+        #self.canvas.mpl_disconnect(self.cid_motion)
         self.canvas.mpl_disconnect(self.cid_key)
         try:
             self.line1.remove()
@@ -240,7 +244,7 @@ class SegmentsInteractor(QObject):
 
 
     def draw_callback(self, event):
-        self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+        #self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         self.ax.draw_artist(self.line1)
         self.ax.draw_artist(self.line2)
         self.ax.draw_artist(self.line)
@@ -594,7 +598,7 @@ class LineInteractor(QObject):
         self.cid_press = canvas.mpl_connect('button_press_event', self.button_press_callback)
         self.cid_key = canvas.mpl_connect('key_press_event', self.key_press_callback)
         self.cid_release = canvas.mpl_connect('button_release_event', self.button_release_callback)
-        self.cid_motion = canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
+        #self.cid_motion = canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
         self.canvas = canvas
 
     def computeMarkers(self):
@@ -613,7 +617,7 @@ class LineInteractor(QObject):
         self.verts = [(x_, y_) for x_, y_ in zip(x, y)]
         
     def draw_callback(self, event):
-        self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+        #self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         self.ax.draw_artist(self.poly)
         self.ax.draw_artist(self.line)
 
@@ -738,7 +742,7 @@ class LineInteractor(QObject):
         #self.canvas.mpl_disconnect(self.cid_draw)
         self.canvas.mpl_disconnect(self.cid_press)
         self.canvas.mpl_disconnect(self.cid_release)
-        self.canvas.mpl_disconnect(self.cid_motion)
+        #self.canvas.mpl_disconnect(self.cid_motion)
         self.canvas.mpl_disconnect(self.cid_key)
         try:
             self.line.remove()

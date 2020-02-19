@@ -418,7 +418,7 @@ class GUI (QMainWindow):
             self.sp.lineManager.disconnect()
             self.sp.emlines = []
             self.sp.ablines = []
-            self.sp.fig.canvas.draw_idle()
+            #self.sp.fig.canvas.draw_idle()
 
     def fitSpectrum(self):
         """Fit defined guess."""
