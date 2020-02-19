@@ -310,8 +310,8 @@ class GUI (QMainWindow):
             self.nem = int(em)
             self.nab = int(ab)
             try:
-                self.onRemoveContinuum('segments deleted')
-                self.onRemoveContinuum('line deleted')
+                self.onRemoveContinuum('all')
+                self.sp.fig.canvas.draw_idle()
             except BaseException:
                 pass
             self.sp.guessContinuum = True
@@ -361,11 +361,12 @@ class GUI (QMainWindow):
             x0 = x[1] + dx + i * 2 * dx
             fwhm = dx
             idx = (self.sp.wave > (x0 - dx)) & (self.sp.wave < (x0 + dx))
+            y0 = self.sp.guess.intcpt + self.sp.guess.slope * x0
             if type == 'emission':
-                A = np.nanmax(self.sp.flux[idx]) - self.sp.guess.intcpt - self.sp.guess.slope * x0
+                A = np.nanmax(self.sp.flux[idx]) - y0
             else:
-                A = np.nanmin(self.sp.flux[idx]) - self.sp.guess.intcpt - self.sp.guess.slope * x0
-            LI = LineInteractor(self.sp.axes, self.sp.guess.intcpt,
+                A = np.nanmin(self.sp.flux[idx]) - y0
+            LI = LineInteractor(self.sp.axes, y0,
                                 self.sp.guess.slope, x0, A, fwhm)
             LI.modSignal.connect(self.onModifiedGuess)
             LI.mySignal.connect(self.onRemoveContinuum)
@@ -379,10 +380,10 @@ class GUI (QMainWindow):
                 self.sp.modifyGuess = True
                 # Change continuum data in the line
                 for line in self.sp.emlines + self.sp.ablines:
-                    oldc = line.c0 + line.cs * line.x0
-                    line.c0 = self.sp.guess.intcpt
+                    oldc = line.c0
+                    line.c0 = self.sp.guess.intcpt + line.x0 * self.sp.guess.slope
                     line.cs = self.sp.guess.slope
-                    newc = line.c0 + line.cs * line.x0
+                    newc = line.c0
                     if np.abs(oldc - newc) > 0.:
                         if line.A >= 0:
                             line.A += oldc - newc

@@ -697,6 +697,7 @@ class LineInteractor(QObject):
             elif self._ind == 1:
                 dx = x_ - x[1]
                 self.x0 += dx
+                self.c0 += dx * self.cs
                 dy = y_ - y[1]
                 if (self.A > 0) & (dy < -self.A):  # Emission line
                     pass
@@ -714,6 +715,7 @@ class LineInteractor(QObject):
             elif self._ind == 1:
                 dx = x_ - x[1]
                 self.x0 += dx
+                self.c0 += dx * self.cs
                 dy = y_ - y[1]
                 if (self.A > 0) & (dy < -self.A):  # Emission line
                     pass

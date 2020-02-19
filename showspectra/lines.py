@@ -235,8 +235,8 @@ def fitLines(sp, intercept, slope):
         li = 'l' + str(i) + '_'
         center = pars[li + 'center'].value  # Observed
         centerErr = pars[li + 'center'].stderr  # Observed
-        sigma = pars[li + 'sigma'] .value   # Observed
-        sigmaErr = pars[li + 'sigma'] .stderr   # Observed
+        sigma = pars[li + 'sigma'].value   # Observed
+        sigmaErr = pars[li + 'sigma'].stderr   # Observed
         A =  pars[li+'amplitude'].value
         Aerr = pars[li+'amplitude'].stderr
         amplitude = A * norm / (np.sqrt(2 * np.pi) * sigma)
