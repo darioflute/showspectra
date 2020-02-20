@@ -392,9 +392,7 @@ class GUI (QMainWindow):
                     line.updateCurves()
         elif event == 'line guess modified':
             # Redraw lines after modifying one line
-            #pass
             print('line modified')
-            #self.sp.draw_idle()
         else:
             pass
 
