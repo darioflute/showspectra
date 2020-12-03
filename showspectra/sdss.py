@@ -21,10 +21,10 @@ def getGalaxies(file):
 
     with fits.open(file) as hdu:
         header = hdu['PRIMARY'].header
-        flux = hdu['FLUX'].data
-        err  = hdu['ERR'].data
+        flux = hdu['FLUX'].data * 1.e-17
+        err  = hdu['ERR'].data * 1.e-17
         logw = hdu['LOGWAVE'].data
-        sky = hdu['SKY'].data
+        sky = hdu['SKY'].data * 1.e-17
         
     wave = 10**logw
     nf = len(flux[0,:])

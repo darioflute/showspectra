@@ -9,12 +9,14 @@ def define_lines(telescope):
     delta = u'\u03B4'
     eps = u'\u03B5'
     #        alpha.encode('utf8')
+    # http://astronomy.nmsu.edu/drewski/tableofemissionlines.html
     if telescope == 'WIYN' or telescope == 'VIMOS' or telescope == 'SDSS':
         return collections.OrderedDict([
                 ('OVI 1033', ['OVI', 1033.82]),
                 ('Ly-alpha 1215', ['Ly' + alpha, 1215.24]),
                 ('N-V 1240', ['N-V', 1240.81]),
                 ('OI 1304', ['OI', 1304.53]),
+                ('CII 1335', ['CII', 1335.31]),
                 ('Si-IV 1397', ['Si-IV', 1397.61]),
                 ('C-IV 1549', ['C-IV', 1549.48]),
                 ('He-II 1640', ['He-II', 1640.40]),
@@ -45,6 +47,10 @@ def define_lines(telescope):
                 ('[NII] 6585', ['[NII]', 6585.28]),
                 ('SII 6718', ['SII', 6718.29]),
                 ('SII 6732', ['SII', 6732.67]),
+                ('[SIII] 9068', ['[SIII]', 9068.600]),
+                ('[SIII] 9531', ['[SIII]', 9531.100]),
+                ('[CI] 9824',['[CI]', 9824.130]),
+                ('[CI] 9850',['[CI]', 9850.260]),
                 ('A:Ca(H) 3934', ['A:Ca(H)', 3934.78]),
                 ('A:Ca(K) 3969', ['A:Ca(K)', 3969.59]),
                 ('A:G-band 4300', ['A:G-band', 4300.4]),
@@ -55,7 +61,10 @@ def define_lines(telescope):
                 ('A:H-delta 4102', ['A:H' + delta, 4102.89]),
                 ('A:H-gamma 4341', ['A:H' + gamma, 4341.68]),
                 ('A:H-beta 4862', ['A:H' + beta, 4862.68]),
-                ('A:H-alpha 6564', ['A:H' + alpha, 6564.61])
+                ('A:H-alpha 6564', ['A:H' + alpha, 6564.61]),
+                ('A:CaII 8500', ['A:CaII', 8500.36]),
+                ('A:CaII 8544', ['A:CaII', 8544.44]),
+                ('A:CaII 8664', ['A:CaII', 8664.52])
                 ])
     else:  # Higher resolution can see the [OII] doublet
         return collections.OrderedDict([
@@ -240,6 +249,9 @@ def fitLines(sp, intercept, slope):
         A =  pars[li+'amplitude'].value
         Aerr = pars[li+'amplitude'].stderr
         amplitude = A * norm / (np.sqrt(2 * np.pi) * sigma)
-        amplitudeErr = amplitude * (Aerr/A + sigmaErr/sigma)
+        if sigmaErr is not None:
+            amplitudeErr = amplitude * (Aerr/A + sigmaErr/sigma)
+        else:
+            amplitudeErr = np.nan
         linepars.append([center, centerErr, amplitude, amplitudeErr, sigma, sigmaErr])
     return linepars

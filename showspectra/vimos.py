@@ -12,6 +12,7 @@ def getSky(file):
     n = hdr['naxis1']
     wave = crval + (np.arange(n) - crpix) * cdelt
     skyflux = data[0]
+    print('Sky read')
     return Sky(wave, skyflux)
 
 
@@ -27,10 +28,16 @@ def getGalaxies(file):
     # Source identification added to the header
     # HIERARCH SLIT_??_ID, RA, DEC
     for i in range(len(galaxies)):
-        galaxies[i].fiber = hdr['HIERARCH SLIT_{:02d}_ID'.format(i)]
-        galaxies[i].ra = hdr['HIERARCH SLIT_{:02d}_RA'.format(i)]
-        galaxies[i].dec = hdr['HIERARCH SLIT_{:02d}_DEC'.format(i)]
-
+        try:
+            galaxies[i].fiber = hdr['HIERARCH SLIT_{:02d}_ID'.format(i)]
+            galaxies[i].ra = hdr['HIERARCH SLIT_{:02d}_RA'.format(i)]
+            galaxies[i].dec = hdr['HIERARCH SLIT_{:02d}_DEC'.format(i)]
+        except:
+            print('Galaxy ',i,' not in the header !')
+            galaxies[i].fiber = -1
+            galaxies[i].ra = -1
+            galaxies[i].dec = -1
+    print('spectra read')
     return galaxies
 
 
@@ -42,3 +49,4 @@ def getErrors(self, file):
         # Update clipped errors only if unclipped data (from recovery)
         if len(self.galaxies[i].wc) == len(self.galaxies[i].ec):
             self.galaxies[i].ec = data[i]
+    print('error read')
