@@ -465,7 +465,9 @@ class GUI (QMainWindow):
         elif self.telescope == 'VIMOS':
             from showspectra.vimos import getSky, getGalaxies, getErrors
         elif self.telescope == 'SDSS':
-            from showspectra.sdss import getSky, getGalaxies
+            from showspectra.sdss import getGalaxies
+        elif self.telescope == 'MUSE':
+            from showspectra.muse import getGalaxies
         else:
             print("Telescope " + self.telescope + " is not yet supported.")
         FD = selectFiles()
@@ -477,13 +479,13 @@ class GUI (QMainWindow):
             print('Opening ', flux)
             try:
                 self.dirname, file = os.path.split(flux)
-                if self.telescope != 'SDSS':
+                if self.telescope in ['VIMOS','WIYN']:
                     self.galaxies = getGalaxies(flux)
                     print('Opening ', err)
                     getErrors(self, err)
                     print('Opening ', sky)
                     self.sky = getSky(sky)
-                else:
+                elif self.telescope in ['SDSS','MUSE']:
                     self.galaxies, self.sky = getGalaxies(flux)
             except BaseException:
                 print('Files are not correct for telescope ', self. telescope)

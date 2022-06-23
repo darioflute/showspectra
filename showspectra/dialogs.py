@@ -18,7 +18,7 @@ class selectTelescope(QDialog):
 
     def setupUI(self):
 
-        self.telescope = self.createGroup('Telescope', ['WIYN', 'VIMOS', 'SDSS'])
+        self.telescope = self.createGroup('Telescope', ['WIYN', 'VIMOS', 'SDSS','MUSE'])
 
         hgroup = QGroupBox()
         hbox = QHBoxLayout()
@@ -111,9 +111,9 @@ class selectFiles(QDialog):
             from glob import glob as gb
             import re
             
-            pattern = 'SDSS'
-            match = re.search(pattern, file)
-            if match:
+            match1 = re.search('SDSS', file)
+            match2 = re.search('MUSE', file)
+            if match1 or match2:
                 self.b2.setText('Err: '+file)
                 self.b3.setText('Sky: '+file)
                 self.err = file

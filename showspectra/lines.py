@@ -10,7 +10,7 @@ def define_lines(telescope):
     eps = u'\u03B5'
     #        alpha.encode('utf8')
     # http://astronomy.nmsu.edu/drewski/tableofemissionlines.html
-    if telescope == 'WIYN' or telescope == 'VIMOS' or telescope == 'SDSS':
+    if telescope in ['WIYN', 'VIMOS', 'SDSS', 'MUSE']:
         return collections.OrderedDict([
                 ('OVI 1033', ['OVI', 1033.82]),
                 ('Ly-alpha 1215', ['Ly' + alpha, 1215.24]),
@@ -51,6 +51,9 @@ def define_lines(telescope):
                 ('[SIII] 9531', ['[SIII]', 9531.100]),
                 ('[CI] 9824',['[CI]', 9824.130]),
                 ('[CI] 9850',['[CI]', 9850.260]),
+                #https://academic.oup.com/mnras/article/447/3/2784/2892937
+                ('A:[MgII] 2796', ['A:[MgII]', 2796.3543 ]),
+                ('A:[MgII] 2803', ['A:[MgII]', 2803.5315]),                
                 ('A:Ca(H) 3934', ['A:Ca(H)', 3934.78]),
                 ('A:Ca(K) 3969', ['A:Ca(K)', 3969.59]),
                 ('A:G-band 4300', ['A:G-band', 4300.4]),
